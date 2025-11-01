@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ayça's Flight Number Search</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #12161c;
+      --muted: #9aa5b1;
+      --text: #e6edf3;
+      --accent: #4cc9f0;
+      --accent-2: #7b7efc;
+      --error: #ff6b6b;
+      --ok: #2ec4b6;
+      --border: #1f2630;
+      --pill: #1b2130;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: linear-gradient(180deg, #0b0d10 0%, #0b0d10 60%, #0e1117 100%);
+      color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    header {
+      padding: 24px 20px; border-bottom: 1px solid var(--border);
+      background: rgba(18, 22, 28, .6); backdrop-filter: blur(6px); position: sticky; top: 0; z-index: 2;
+    }
+    header h1 { margin: 0; font-size: 20px; display: flex; gap: 10px; align-items: center; }
+    header h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent-2)); box-shadow: 0 0 14px rgba(76,201,240, .6); }
+    .container { max-width: 960px; margin: 24px auto; padding: 0 16px 80px; }
+    .panel {
+      background: linear-gradient(180deg, #12161c, #10141a);
+      border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.02);
+    }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(12, 1fr); }
+    .col-12 { grid-column: span 12; }
+    .col-6 { grid-column: span 12; }
+    .col-4 { grid-column: span 12; }
+    .col-2 { grid-column: span 12; }
+    @media (min-width: 720px) {
+      .col-6 { grid-column: span 6; }
+      .col-4 { grid-column: span 4; }
+      .col-2 { grid-column: span 2; }
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: .02em; }
+    input[type="text"], input[type="date"], select {
+      width: 100%; padding: 12px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #0f141b; color: var(--text); outline: none;
+    }
+    input::placeholder { color: #6c7685; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      appearance: none; border: 1px solid transparent; color: #0a0c10; font-weight: 600;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      padding: 12px 16px; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 8px 18px rgba(123,126,252,.35);
+    }
+    .btn.secondary {
+      background: transparent; color: var(--text); border-color: var(--border);
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .help { color: var(--muted); font-size: 12px; }
+    .list { display: grid; gap: 10px; margin-top: 8px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--pill); color: var(--text); border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 999px; font-weight: 600;
+    }
+    .flight {
+      border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+      background: linear-gradient(180deg, #11161d, #0f141b);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .flight .left { display: flex; gap: 12px; align-items: center; }
+    .badge {
+      font-size: 12px; color: var(--muted); padding: 4px 8px; border-radius: 999px;
+      border: 1px solid var(--border); background: #0c1117;
+    }
+    .muted { color: var(--muted); }
+    .error { color: var(--error); }
+    .ok { color: var(--ok); }
+    .sr-only { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
+    .spinner { width: 18px; height: 18px; border: 3px solid #1e2531; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer { color: var(--muted); text-align: center; padding: 24px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-list {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+      background: #0f141b; border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 10px 10px; max-height: 240px; overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35); display: none;
+    }
+    .autocomplete-list.show { display: block; }
+    .autocomplete-item {
+      padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover, .autocomplete-item.selected {
+      background: rgba(76, 201, 240, .1);
+    }
+    .autocomplete-item .code {
+      font-weight: 700; color: var(--accent); font-size: 14px;
+      font-family: ui-monospace, monospace;
+    }
+    .autocomplete-item .info { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="dot"></span> Ayça's Flight Number Search</h1>
+  </header>
+  <div class="container">
+    <!-- API 키 섹션 -->
+    <section id="api-section" class="panel">
+      <div class="grid">
+        <div class="col-6">
+          <label for="apiKey">API Key</label>
+          <div id="apiKeyInputArea">
+            <div class="row">
+              <input id="apiKey" type="text" placeholder="Enter your Airlabs API key" />
+              <button id="saveKey" class="btn">Save</button>
+            </div>
+            <p class="help">Stored locally (LocalStorage). If no key, you can use <b>DEMO</b> mode.</p>
+          </div>
+          <div id="apiKeySavedArea" style="display: none;">
+            <div class="row">
+              <button id="editKey" class="btn secondary">Edit API Key</button>
+              <button id="clearKey" class="btn secondary" title="Clear saved key">Clear</button>
+            </div>
+            <p class="help">API key is saved. Click <b>Edit</b> to change it.</p>
+          </div>
+        </div>
+        <div class="col-4">
+          <label>Status</label>
+          <div id="keyStatus" class="chip">Checking key...</div>
+        </div>
+        <div class="col-2">
+          <label for="langSelect">Language</label>
+          <select id="langSelect">
+            <option value="en">English</option>
+            <option value="ko">한국어</option>
+            <option value="tr">Türkçe</option>
+          </select>
+        </div>
+      </div>
+    </section>
+    <!-- 조건 입력 섹션 (쿼리파라미터 없을 때 노출) -->
+    <section id="input-section" class="panel" hidden>
+      <div class="grid">
+        <div class="col-6">
+          <label for="dateInput">Date</label>
+          <input id="dateInput" type="date" />
+        </div>
+        <div class="col-6">
+          <label for="airlineInput">Airline (IATA)</label>
+          <select id="airlineInput">
+            <option value="">Select</option>
+            <option value="PC">Pegasus Airlines (PC)</option>
+            <option value="KE">Korean Air (KE)</option>
+            <option value="OZ">Asiana Airlines (OZ)</option>
+            <option value="JL">Japan Airlines (JL)</option>
+            <option value="NH">ANA (NH)</option>
+            <option value="SQ">Singapore Airlines (SQ)</option>
+            <option value="DL">Delta Air Lines (DL)</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label for="originInput">Origin (City or Airport Code)</label>
+          <div class="autocomplete-wrapper">
+            <input id="originInput" type="text" placeholder="e.g., Incheon, ICN, Tokyo, Narita" autocomplete="off" />
+            <div id="originList" class="autocomplete-list"></div>
+          </div>
+        </div>
+        <div class="col-6">
+          <label for="destinationInput">Destination (City or Airport Code)</label>
+          <div class="autocomplete-wrapper">
+            <input id="destinationInput" type="text" placeholder="e.g., Tokyo, NRT, Bangkok" autocomplete="off" />
+            <div id="destinationList" class="autocomplete-list"></div>
+          </div>
+        </div>
+        <div class="col-12 row">
+          <button id="searchBtn" class="btn">Search</button>
+          <button id="demoBtn" class="btn secondary" title="View with DEMO data">View with DEMO Data</button>
+          <span id="inputHint" class="help">Select date/airline/origin/destination and search.</span>
+        </div>
+      </div>
+    </section>
+    <!-- 조건 요약 및 결과 -->
+    <section id="result-section" class="panel">
+      <div class="row" style="justify-content: space-between;">
+        <div id="criteria" class="list"></div>
+        <div id="loadState"></div>
+      </div>
+      <div class="divider"></div>
+      <div id="resultArea" class="list"></div>
+    </section>
+    <footer>
+      <small>Provider: Airlabs API. Returns schedules from current time + 10 hours. Calls may be restricted by browser security policies.</small>
+    </footer>
+  </div>
+  <script>
+    // ========= 설정 영역 =========
+    const STORAGE_KEY = 'FLIGHT_API_KEY';
+    const LANG_KEY = 'FLIGHT_LANG';
+    // 제공자 선택: 'airlabs' | 'custom' | 'demo'
+    let PROVIDER = 'airlabs';
+    // ======== 다국어 지원 ========
+    const i18n = {
+      en: {
+        title: "Ayça's Flight Number Search",
+        apiKeyLabel: 'API Key',
+        apiKeyPlaceholder: 'Enter your Airlabs API key',
+        saveBtn: 'Save',
+        editBtn: 'Edit API Key',
+        clearBtn: 'Clear',
+        apiKeyHelp: 'Stored locally (LocalStorage). If no key, you can use <b>DEMO</b> mode.',
+        apiKeySavedHelp: 'API key is saved. Click <b>Edit</b> to change it.',
+        statusLabel: 'Status',
+        statusChecking: 'Checking key...',
+        statusActive: 'Using saved key',
+        statusInactive: 'No key set (DEMO available)',
+        dateLabel: 'Date',
+        airlineLabel: 'Airline (IATA)',
+        airlineSelect: 'Select',
+        originLabel: 'Origin (City or Airport Code)',
+        originPlaceholder: 'e.g., Incheon, ICN, Tokyo, Narita',
+        destinationLabel: 'Destination (City or Airport Code)',
+        destinationPlaceholder: 'e.g., Tokyo, NRT, Bangkok',
+        searchBtn: 'Search',
+        demoBtn: 'View with DEMO Data',
+        inputHint: 'Select date/airline/origin/destination and search.',
+        searching: 'Searching...',
+        noResults: 'No flight numbers found for this criteria.',
+        waitingForInput: 'Please select criteria above and click "Search".',
+        flightLabel: 'FLIGHT',
+        flightNumber: 'Flight Number',
+        criteria: 'Criteria',
+        datePrefix: 'Date',
+        airlinePrefix: 'Airline',
+        routePrefix: 'Route',
+        providerPrefix: 'Provider',
+        languageLabel: 'Language',
+        footerText: 'Provider: Airlabs API. Returns schedules from current time + 10 hours. Calls may be restricted by browser security policies.',
+        alertNoKey: 'Please enter an API key.',
+        alertSelectAll: 'Please select date, airline, origin, and destination.',
+      },
+      ko: {
+        title: "Ayça's Flight Number Search",
+        apiKeyLabel: 'API 키',
+        apiKeyPlaceholder: 'Airlabs API 키를 입력하세요',
+        saveBtn: '저장',
+        editBtn: 'API 키 수정',
+        clearBtn: '삭제',
+        apiKeyHelp: '로컬에만 저장됩니다(LocalStorage). 키가 없으면 <b>DEMO</b> 모드로 조회할 수 있어요.',
+        apiKeySavedHelp: 'API 키가 저장되었습니다. 변경하려면 <b>수정</b>을 클릭하세요.',
+        statusLabel: '상태',
+        statusChecking: '키 확인 중…',
+        statusActive: '저장된 키 사용 중',
+        statusInactive: '키 미설정 (DEMO 가능)',
+        dateLabel: '날짜',
+        airlineLabel: '항공사 (IATA)',
+        airlineSelect: '선택',
+        originLabel: '출발지 (도시명 또는 공항코드)',
+        originPlaceholder: '예: 인천, ICN, Tokyo, 나리타',
+        destinationLabel: '도착지 (도시명 또는 공항코드)',
+        destinationPlaceholder: '예: 도쿄, NRT, Bangkok, 방콕',
+        searchBtn: '조회',
+        demoBtn: 'DEMO 데이터로 보기',
+        inputHint: '날짜/항공사/출발지/도착지를 선택하고 조회하세요.',
+        searching: '조회 중…',
+        noResults: '조건에 해당하는 항공편명이 없습니다.',
+        waitingForInput: '상단 입력 섹션에서 조건을 선택하고 "조회"를 눌러주세요.',
+        flightLabel: 'FLIGHT',
+        flightNumber: '항공편명',
+        criteria: '조건',
+        datePrefix: '날짜',
+        airlinePrefix: '항공사',
+        routePrefix: '노선',
+        providerPrefix: 'Provider',
+        languageLabel: '언어',
+        footerText: '제공자: Airlabs API. 현재 시간부터 10시간 이후까지의 일정을 반환합니다. 브라우저 보안 정책에 따라 호출이 제한될 수 있습니다.',
+        alertNoKey: 'API 키를 입력하세요.',
+        alertSelectAll: '날짜, 항공사, 출발지, 도착지를 모두 선택해주세요.',
+      },
+      tr: {
+        title: "Ayça'nın Uçuş Numarası Arama",
+        apiKeyLabel: 'API Anahtarı',
+        apiKeyPlaceholder: 'Airlabs API anahtarınızı girin',
+        saveBtn: 'Kaydet',
+        editBtn: 'API Anahtarını Düzenle',
+        clearBtn: 'Temizle',
+        apiKeyHelp: 'Yerel olarak saklanır (LocalStorage). Anahtar yoksa <b>DEMO</b> modunu kullanabilirsiniz.',
+        apiKeySavedHelp: 'API anahtarı kaydedildi. Değiştirmek için <b>Düzenle</b>ye tıklayın.',
+        statusLabel: 'Durum',
+        statusChecking: 'Anahtar kontrol ediliyor...',
+        statusActive: 'Kaydedilen anahtar kullanılıyor',
+        statusInactive: 'Anahtar ayarlanmadı (DEMO mevcut)',
+        dateLabel: 'Tarih',
+        airlineLabel: 'Havayolu (IATA)',
+        airlineSelect: 'Seçin',
+        originLabel: 'Kalkış (Şehir veya Havalimanı Kodu)',
+        originPlaceholder: 'Örn: Istanbul, IST, Ankara, SAW',
+        destinationLabel: 'Varış (Şehir veya Havalimanı Kodu)',
+        destinationPlaceholder: 'Örn: Antalya, AYT, Izmir, ADB',
+        searchBtn: 'Ara',
+        demoBtn: 'DEMO Verileriyle Görüntüle',
+        inputHint: 'Tarih/havayolu/kalkış/varış seçin ve arayın.',
+        searching: 'Aranıyor...',
+        noResults: 'Bu kriterlere uygun uçuş numarası bulunamadı.',
+        waitingForInput: 'Lütfen yukarıdaki kriterleri seçin ve "Ara"ya tıklayın.',
+        flightLabel: 'UÇUŞ',
+        flightNumber: 'Uçuş Numarası',
+        criteria: 'Kriterler',
+        datePrefix: 'Tarih',
+        airlinePrefix: 'Havayolu',
+        routePrefix: 'Rota',
+        providerPrefix: 'Sağlayıcı',
+        languageLabel: 'Dil',
+        footerText: 'Sağlayıcı: Airlabs API. Şu andan itibaren 10 saat sonraya kadar olan programları döndürür. Tarayıcı güvenlik politikalarına göre çağrılar kısıtlanabilir.',
+        alertNoKey: 'Lütfen bir API anahtarı girin.',
+        alertSelectAll: 'Lütfen tarih, havayolu, kalkış ve varış noktalarını seçin.',
+      }
+    };
+    let currentLang = localStorage.getItem(LANG_KEY) || 'en';
+    function t(key) {
+      return i18n[currentLang]?.[key] || i18n.en[key] || key;
+    }
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem(LANG_KEY, lang);
+      updateUILanguage();
+    }
+    function updateUILanguage() {
+      // Update all UI text elements
+      document.title = t('title');
+      const h1 = $('header h1');
+      // Find text node after the span
+      for (let i = 0; i < h1.childNodes.length; i++) {
+        if (h1.childNodes[i].nodeType === Node.TEXT_NODE) {
+          h1.childNodes[i].textContent = ' ' + t('title');
+          break;
+        }
+      }
+      $('label[for="apiKey"]').textContent = t('apiKeyLabel');
+      $('#apiKey').placeholder = t('apiKeyPlaceholder');
+      $('#saveKey').textContent = t('saveBtn');
+      $('#editKey').textContent = t('editBtn');
+      $('#clearKey').textContent = t('clearBtn');
+      $('#apiKeyInputArea .help').innerHTML = t('apiKeyHelp');
+      $('#apiKeySavedArea .help').innerHTML = t('apiKeySavedHelp');
+      $('label[for="dateInput"]').textContent = t('dateLabel');
+      $('label[for="airlineInput"]').textContent = t('airlineLabel');
+      $('label[for="originInput"]').textContent = t('originLabel');
+      $('#originInput').placeholder = t('originPlaceholder');
+      $('label[for="destinationInput"]').textContent = t('destinationLabel');
+      $('#destinationInput').placeholder = t('destinationPlaceholder');
+      $('#searchBtn').textContent = t('searchBtn');
+      $('#demoBtn').textContent = t('demoBtn');
+      $('#demoBtn').title = t('demoBtn');
+      $('#inputHint').textContent = t('inputHint');
+      $('footer small').textContent = t('footerText');
+      // Update airline select options
+      const airlineSelect = $('#airlineInput');
+      airlineSelect.options[0].textContent = t('airlineSelect');
+      // Update status if needed
+      const storedKey = localStorage.getItem(STORAGE_KEY) || '';
+      setKeyStatus(!!storedKey);
+    }
+    // ======== 공항 데이터베이스 ========
+    const AIRPORTS = [
+      // 한국
+      { code: 'ICN', city: '인천', cityEn: 'Incheon', airport: '인천국제공항', country: 'KR' },
+      { code: 'GMP', city: '서울', cityEn: 'Seoul', airport: '김포국제공항', country: 'KR' },
+      { code: 'PUS', city: '부산', cityEn: 'Busan', airport: '김해국제공항', country: 'KR' },
+      { code: 'CJU', city: '제주', cityEn: 'Jeju', airport: '제주국제공항', country: 'KR' },
+      // 일본
+      { code: 'NRT', city: '도쿄', cityEn: 'Tokyo', airport: '나리타국제공항', country: 'JP' },
+      { code: 'HND', city: '도쿄', cityEn: 'Tokyo', airport: '하네다공항', country: 'JP' },
+      { code: 'KIX', city: '오사카', cityEn: 'Osaka', airport: '간사이국제공항', country: 'JP' },
+      { code: 'ITM', city: '오사카', cityEn: 'Osaka', airport: '이타미공항', country: 'JP' },
+      { code: 'FUK', city: '후쿠오카', cityEn: 'Fukuoka', airport: '후쿠오카공항', country: 'JP' },
+      { code: 'CTS', city: '삿포로', cityEn: 'Sapporo', airport: '신치토세공항', country: 'JP' },
+      { code: 'NGO', city: '나고야', cityEn: 'Nagoya', airport: '주부센트레아국제공항', country: 'JP' },
+      // 중국/홍콩/대만
+      { code: 'PVG', city: '상하이', cityEn: 'Shanghai', airport: '푸둥국제공항', country: 'CN' },
+      { code: 'PEK', city: '베이징', cityEn: 'Beijing', airport: '베이징 수도국제공항', country: 'CN' },
+      { code: 'HKG', city: '홍콩', cityEn: 'Hong Kong', airport: '홍콩국제공항', country: 'HK' },
+      { code: 'TPE', city: '타이베이', cityEn: 'Taipei', airport: '타오위안국제공항', country: 'TW' },
+      // 동남아
+      { code: 'BKK', city: '방콕', cityEn: 'Bangkok', airport: '수완나품국제공항', country: 'TH' },
+      { code: 'SIN', city: '싱가포르', cityEn: 'Singapore', airport: '창이국제공항', country: 'SG' },
+      { code: 'KUL', city: '쿠알라룸푸르', cityEn: 'Kuala Lumpur', airport: '쿠알라룸푸르국제공항', country: 'MY' },
+      { code: 'MNL', city: '마닐라', cityEn: 'Manila', airport: '니노이 아키노국제공항', country: 'PH' },
+      { code: 'HAN', city: '하노이', cityEn: 'Hanoi', airport: '노이바이국제공항', country: 'VN' },
+      { code: 'SGN', city: '호치민', cityEn: 'Ho Chi Minh', airport: '떤선녓국제공항', country: 'VN' },
+      // 미국
+      { code: 'LAX', city: '로스앤젤레스', cityEn: 'Los Angeles', airport: 'LA국제공항', country: 'US' },
+      { code: 'SFO', city: '샌프란시스코', cityEn: 'San Francisco', airport: '샌프란시스코국제공항', country: 'US' },
+      { code: 'JFK', city: '뉴욕', cityEn: 'New York', airport: '존 F. 케네디국제공항', country: 'US' },
+      { code: 'EWR', city: '뉴욕', cityEn: 'New York', airport: '뉴어크 리버티국제공항', country: 'US' },
+      { code: 'ORD', city: '시카고', cityEn: 'Chicago', airport: '오헤어국제공항', country: 'US' },
+      { code: 'SEA', city: '시애틀', cityEn: 'Seattle', airport: '시애틀-타코마국제공항', country: 'US' },
+      // 터키
+      { code: 'IST', city: '이스탄불', cityEn: 'Istanbul', airport: '이스탄불공항', country: 'TR' },
+      { code: 'SAW', city: '이스탄불', cityEn: 'Istanbul', airport: '사비하괵첸공항', country: 'TR' },
+      { code: 'AYT', city: '안탈리아', cityEn: 'Antalya', airport: '안탈리아공항', country: 'TR' },
+      { code: 'ADB', city: '이즈미르', cityEn: 'Izmir', airport: '아드난멘데레스공항', country: 'TR' },
+      { code: 'ESB', city: '앙카라', cityEn: 'Ankara', airport: '에센보아공항', country: 'TR' },
+      { code: 'BJV', city: '보드룸', cityEn: 'Bodrum', airport: '밀라스-보드룸공항', country: 'TR' },
+      { code: 'DLM', city: '달라만', cityEn: 'Dalaman', airport: '달라만공항', country: 'TR' },
+      { code: 'GZT', city: '가지안테프', cityEn: 'Gaziantep', airport: '가지안테프공항', country: 'TR' },
+      { code: 'TZX', city: '트라브존', cityEn: 'Trabzon', airport: '트라브존공항', country: 'TR' },
+      { code: 'ASR', city: '카이세리', cityEn: 'Kayseri', airport: '카이세리공항', country: 'TR' },
+      { code: 'ADA', city: '아다나', cityEn: 'Adana', airport: '아다나공항', country: 'TR' },
+      { code: 'KSY', city: '카르스', cityEn: 'Kars', airport: '카르스공항', country: 'TR' },
+      { code: 'VAN', city: '반', cityEn: 'Van', airport: '반페릿멜레스공항', country: 'TR' },
+      { code: 'DIY', city: '디야르바키르', cityEn: 'Diyarbakir', airport: '디야르바키르공항', country: 'TR' },
+      { code: 'EZS', city: '엘라지', cityEn: 'Elazig', airport: '엘라지공항', country: 'TR' },
+      { code: 'MLX', city: '말라티야', cityEn: 'Malatya', airport: '말라티야공항', country: 'TR' },
+      { code: 'SXZ', city: '시바스', cityEn: 'Sivas', airport: '시바스공항', country: 'TR' },
+      { code: 'MZH', city: '아마시야', cityEn: 'Amasya', airport: '메르지폰공항', country: 'TR' },
+      { code: 'ERZ', city: '에르주룸', cityEn: 'Erzurum', airport: '에르주룸공항', country: 'TR' },
+      { code: 'KYA', city: '코냐', cityEn: 'Konya', airport: '코냐공항', country: 'TR' },
+      { code: 'DNZ', city: '데니즐리', cityEn: 'Denizli', airport: '데니즐리공항', country: 'TR' },
+      { code: 'USQ', city: '우샤크', cityEn: 'Usak', airport: '우샤크공항', country: 'TR' },
+      { code: 'NAV', city: '네브셰히르', cityEn: 'Nevsehir', airport: '카파도키아공항', country: 'TR' },
+      { code: 'HTY', city: '하타이', cityEn: 'Hatay', airport: '하타이공항', country: 'TR' },
+      { code: 'GNY', city: '샨르우르파', cityEn: 'Sanliurfa', airport: '샨르우르파공항', country: 'TR' },
+      { code: 'SFQ', city: '샹크르', cityEn: 'Cankiri', airport: '샹크르공항', country: 'TR' },
+      { code: 'BAL', city: '반', cityEn: 'Batman', airport: '바트만공항', country: 'TR' },
+      { code: 'MSR', city: '무쉬', cityEn: 'Mus', airport: '무쉬공항', country: 'TR' },
+      { code: 'SZF', city: '삼순', cityEn: 'Samsun', airport: '삼순차르샴바공항', country: 'TR' },
+      { code: 'ONQ', city: '조루룸', cityEn: 'Zonguldak', airport: '조루룸공항', country: 'TR' },
+      { code: 'TEQ', city: '테키르다', cityEn: 'Tekirdag', airport: '테키르다코르루공항', country: 'TR' },
+      // 영국
+      { code: 'LHR', city: '런던', cityEn: 'London', airport: '히드로공항', country: 'GB' },
+      { code: 'LGW', city: '런던', cityEn: 'London', airport: '개트윅공항', country: 'GB' },
+      { code: 'STN', city: '런던', cityEn: 'London', airport: '스탠스테드공항', country: 'GB' },
+      { code: 'LTN', city: '런던', cityEn: 'London', airport: '루턴공항', country: 'GB' },
+      { code: 'LCY', city: '런던', cityEn: 'London', airport: '런던시티공항', country: 'GB' },
+      { code: 'MAN', city: '맨체스터', cityEn: 'Manchester', airport: '맨체스터공항', country: 'GB' },
+      { code: 'EDI', city: '에딘버러', cityEn: 'Edinburgh', airport: '에딘버러공항', country: 'GB' },
+      { code: 'BHX', city: '버밍엄', cityEn: 'Birmingham', airport: '버밍엄공항', country: 'GB' },
+      { code: 'GLA', city: '글래스고', cityEn: 'Glasgow', airport: '글래스고공항', country: 'GB' },
+      { code: 'BRS', city: '브리스톨', cityEn: 'Bristol', airport: '브리스톨공항', country: 'GB' },
+      { code: 'NCL', city: '뉴캐슬', cityEn: 'Newcastle', airport: '뉴캐슬공항', country: 'GB' },
+      { code: 'LPL', city: '리버풀', cityEn: 'Liverpool', airport: '리버풀공항', country: 'GB' },
+      // 프랑스
+      { code: 'CDG', city: '파리', cityEn: 'Paris', airport: '샤를드골공항', country: 'FR' },
+      { code: 'ORY', city: '파리', cityEn: 'Paris', airport: '오를리공항', country: 'FR' },
+      { code: 'NCE', city: '니스', cityEn: 'Nice', airport: '코트다쥐르공항', country: 'FR' },
+      { code: 'LYS', city: '리옹', cityEn: 'Lyon', airport: '리옹생텍쥐페리공항', country: 'FR' },
+      { code: 'MRS', city: '마르세유', cityEn: 'Marseille', airport: '마르세유프로방스공항', country: 'FR' },
+      { code: 'TLS', city: '툴루즈', cityEn: 'Toulouse', airport: '툴루즈블라냑공항', country: 'FR' },
+      { code: 'BOD', city: '보르도', cityEn: 'Bordeaux', airport: '보르도메리냑공항', country: 'FR' },
+      { code: 'NTE', city: '낭트', cityEn: 'Nantes', airport: '낭트아틀랑티크공항', country: 'FR' },
+      { code: 'BVA', city: '보베', cityEn: 'Beauvais', airport: '보베틸레공항', country: 'FR' },
+      // 독일
+      { code: 'FRA', city: '프랑크푸르트', cityEn: 'Frankfurt', airport: '프랑크푸르트공항', country: 'DE' },
+      { code: 'MUC', city: '뮌헨', cityEn: 'Munich', airport: '뮌헨공항', country: 'DE' },
+      { code: 'BER', city: '베를린', cityEn: 'Berlin', airport: '브란덴부르크공항', country: 'DE' },
+      { code: 'DUS', city: '뒤셀도르프', cityEn: 'Dusseldorf', airport: '뒤셀도르프공항', country: 'DE' },
+      { code: 'HAM', city: '함부르크', cityEn: 'Hamburg', airport: '함부르크공항', country: 'DE' },
+      { code: 'CGN', city: '쾰른', cityEn: 'Cologne', airport: '쾰른본공항', country: 'DE' },
+      { code: 'STR', city: '슈투트가르트', cityEn: 'Stuttgart', airport: '슈투트가르트공항', country: 'DE' },
+      { code: 'NUE', city: '뉘른베르크', cityEn: 'Nuremberg', airport: '뉘른베르크공항', country: 'DE' },
+      { code: 'HAJ', city: '하노버', cityEn: 'Hannover', airport: '하노버공항', country: 'DE' },
+      { code: 'LEJ', city: '라이프치히', cityEn: 'Leipzig', airport: '라이프치히할레공항', country: 'DE' },
+      { code: 'DRS', city: '드레스덴', cityEn: 'Dresden', airport: '드레스덴공항', country: 'DE' },
+      { code: 'BRE', city: '브레멘', cityEn: 'Bremen', airport: '브레멘공항', country: 'DE' },
+      { code: 'DTM', city: '도르트문트', cityEn: 'Dortmund', airport: '도르트문트공항', country: 'DE' },
+      { code: 'FMO', city: '뮌스터', cityEn: 'Munster', airport: '뮌스터오스나브뤼크공항', country: 'DE' },
+      { code: 'FKB', city: '카를스루에', cityEn: 'Karlsruhe', airport: '카를스루에바덴바덴공항', country: 'DE' },
+      // 이탈리아
+      { code: 'FCO', city: '로마', cityEn: 'Rome', airport: '피우미치노공항', country: 'IT' },
+      { code: 'CIA', city: '로마', cityEn: 'Rome', airport: '치암피노공항', country: 'IT' },
+      { code: 'MXP', city: '밀라노', cityEn: 'Milan', airport: '말펜사공항', country: 'IT' },
+      { code: 'LIN', city: '밀라노', cityEn: 'Milan', airport: '리나테공항', country: 'IT' },
+      { code: 'BGY', city: '베르가모', cityEn: 'Bergamo', airport: '베르가모오리오알세리오공항', country: 'IT' },
+      { code: 'VCE', city: '베니스', cityEn: 'Venice', airport: '마르코폴로공항', country: 'IT' },
+      { code: 'TSF', city: '베니스', cityEn: 'Venice', airport: '트레비소공항', country: 'IT' },
+      { code: 'NAP', city: '나폴리', cityEn: 'Naples', airport: '나폴리공항', country: 'IT' },
+      { code: 'BLQ', city: '볼로냐', cityEn: 'Bologna', airport: '볼로냐공항', country: 'IT' },
+      { code: 'CTA', city: '카타니아', cityEn: 'Catania', airport: '카타니아폰타나로사공항', country: 'IT' },
+      { code: 'PMO', city: '팔레르모', cityEn: 'Palermo', airport: '팔레르모공항', country: 'IT' },
+      { code: 'FLR', city: '피렌체', cityEn: 'Florence', airport: '피렌체공항', country: 'IT' },
+      { code: 'PSA', city: '피사', cityEn: 'Pisa', airport: '피사공항', country: 'IT' },
+      { code: 'TRN', city: '토리노', cityEn: 'Turin', airport: '토리노공항', country: 'IT' },
+      { code: 'BRI', city: '바리', cityEn: 'Bari', airport: '바리카롤보이트리아공항', country: 'IT' },
+      // 스페인
+      { code: 'MAD', city: '마드리드', cityEn: 'Madrid', airport: '바라하스공항', country: 'ES' },
+      { code: 'BCN', city: '바르셀로나', cityEn: 'Barcelona', airport: '엘프라트공항', country: 'ES' },
+      { code: 'AGP', city: '말라가', cityEn: 'Malaga', airport: '말라가공항', country: 'ES' },
+      { code: 'SVQ', city: '세비야', cityEn: 'Seville', airport: '세비야공항', country: 'ES' },
+      { code: 'VLC', city: '발렌시아', cityEn: 'Valencia', airport: '발렌시아공항', country: 'ES' },
+      { code: 'ALC', city: '알리칸테', cityEn: 'Alicante', airport: '알리칸테엘체공항', country: 'ES' },
+      { code: 'PMI', city: '팔마', cityEn: 'Palma', airport: '팔마데마요르카공항', country: 'ES' },
+      { code: 'BIO', city: '빌바오', cityEn: 'Bilbao', airport: '빌바오공항', country: 'ES' },
+      // 네덜란드/벨기에
+      { code: 'AMS', city: '암스테르담', cityEn: 'Amsterdam', airport: '스히폴공항', country: 'NL' },
+      { code: 'EIN', city: '에인트호번', cityEn: 'Eindhoven', airport: '에인트호번공항', country: 'NL' },
+      { code: 'RTM', city: '로테르담', cityEn: 'Rotterdam', airport: '로테르담공항', country: 'NL' },
+      { code: 'BRU', city: '브뤼셀', cityEn: 'Brussels', airport: '브뤼셀공항', country: 'BE' },
+      { code: 'CRL', city: '샤를루아', cityEn: 'Charleroi', airport: '브뤼셀사우스샤를루아공항', country: 'BE' },
+      // 스위스
+      { code: 'ZRH', city: '취리히', cityEn: 'Zurich', airport: '취리히공항', country: 'CH' },
+      { code: 'GVA', city: '제네바', cityEn: 'Geneva', airport: '제네바공항', country: 'CH' },
+      { code: 'BSL', city: '바젤', cityEn: 'Basel', airport: '바젤뮐루즈공항', country: 'CH' },
+      // 오스트리아
+      { code: 'VIE', city: '비엔나', cityEn: 'Vienna', airport: '비엔나국제공항', country: 'AT' },
+      // 포르투갈
+      { code: 'LIS', city: '리스본', cityEn: 'Lisbon', airport: '리스본공항', country: 'PT' },
+      { code: 'OPO', city: '포르투', cityEn: 'Porto', airport: '포르투공항', country: 'PT' },
+      { code: 'FAO', city: '파루', cityEn: 'Faro', airport: '파루공항', country: 'PT' },
+      // 그리스
+      { code: 'ATH', city: '아테네', cityEn: 'Athens', airport: '아테네국제공항', country: 'GR' },
+      { code: 'SKG', city: '테살로니키', cityEn: 'Thessaloniki', airport: '테살로니키공항', country: 'GR' },
+      { code: 'HER', city: '이라클리온', cityEn: 'Heraklion', airport: '이라클리온공항', country: 'GR' },
+      { code: 'RHO', city: '로도스', cityEn: 'Rhodes', airport: '로도스공항', country: 'GR' },
+      { code: 'CFU', city: '코르푸', cityEn: 'Corfu', airport: '코르푸공항', country: 'GR' },
+      { code: 'CHQ', city: '하니아', cityEn: 'Chania', airport: '하니아공항', country: 'GR' },
+      { code: 'JMK', city: '미코노스', cityEn: 'Mykonos', airport: '미코노스공항', country: 'GR' },
+      { code: 'JTR', city: '산토리니', cityEn: 'Santorini', airport: '산토리니공항', country: 'GR' },
+      { code: 'ZTH', city: '자킨토스', cityEn: 'Zakynthos', airport: '자킨토스공항', country: 'GR' },
+      { code: 'KGS', city: '코스', cityEn: 'Kos', airport: '코스공항', country: 'GR' },
+      // 키프로스
+      { code: 'LCA', city: '라르나카', cityEn: 'Larnaca', airport: '라르나카국제공항', country: 'CY' },
+      { code: 'PFO', city: '파포스', cityEn: 'Paphos', airport: '파포스국제공항', country: 'CY' },
+      { code: 'ECN', city: '에르칸', cityEn: 'Ercan', airport: '에르칸공항', country: 'CY' },
+      // 동유럽 (폴란드)
+      { code: 'WAW', city: '바르샤바', cityEn: 'Warsaw', airport: '쇼팽공항', country: 'PL' },
+      { code: 'KRK', city: '크라쿠프', cityEn: 'Krakow', airport: '크라쿠프공항', country: 'PL' },
+      { code: 'GDN', city: '그단스크', cityEn: 'Gdansk', airport: '그단스크공항', country: 'PL' },
+      { code: 'WRO', city: '브로츠와프', cityEn: 'Wroclaw', airport: '브로츠와프공항', country: 'PL' },
+      { code: 'KTW', city: '카토비체', cityEn: 'Katowice', airport: '카토비체공항', country: 'PL' },
+      // 동유럽 (체코/헝가리)
+      { code: 'PRG', city: '프라하', cityEn: 'Prague', airport: '바츨라프하벨공항', country: 'CZ' },
+      { code: 'BUD', city: '부다페스트', cityEn: 'Budapest', airport: '부다페스트공항', country: 'HU' },
+      // 발칸 반도
+      { code: 'OTP', city: '부쿠레슈티', cityEn: 'Bucharest', airport: '오토페니공항', country: 'RO' },
+      { code: 'CLJ', city: '클루지나포카', cityEn: 'Cluj-Napoca', airport: '클루지공항', country: 'RO' },
+      { code: 'SOF', city: '소피아', cityEn: 'Sofia', airport: '소피아공항', country: 'BG' },
+      { code: 'VAR', city: '바르나', cityEn: 'Varna', airport: '바르나공항', country: 'BG' },
+      { code: 'BOJ', city: '부르가스', cityEn: 'Burgas', airport: '부르가스공항', country: 'BG' },
+      { code: 'BEG', city: '베오그라드', cityEn: 'Belgrade', airport: '니콜라테슬라공항', country: 'RS' },
+      { code: 'ZAG', city: '자그레브', cityEn: 'Zagreb', airport: '자그레브공항', country: 'HR' },
+      { code: 'SPU', city: '스플리트', cityEn: 'Split', airport: '스플리트공항', country: 'HR' },
+      { code: 'DBV', city: '두브로브니크', cityEn: 'Dubrovnik', airport: '두브로브니크공항', country: 'HR' },
+      { code: 'LJU', city: '류블랴나', cityEn: 'Ljubljana', airport: '류블랴나공항', country: 'SI' },
+      { code: 'SJJ', city: '사라예보', cityEn: 'Sarajevo', airport: '사라예보공항', country: 'BA' },
+      { code: 'SKP', city: '스코페', cityEn: 'Skopje', airport: '스코페공항', country: 'MK' },
+      { code: 'TIA', city: '티라나', cityEn: 'Tirana', airport: '티라나공항', country: 'AL' },
+      { code: 'PRN', city: '프리슈티나', cityEn: 'Pristina', airport: '프리슈티나공항', country: 'XK' },
+      // 북유럽
+      { code: 'CPH', city: '코펜하겐', cityEn: 'Copenhagen', airport: '코펜하겐공항', country: 'DK' },
+      { code: 'ARN', city: '스톡홀름', cityEn: 'Stockholm', airport: '알란다공항', country: 'SE' },
+      { code: 'OSL', city: '오슬로', cityEn: 'Oslo', airport: '가르데르모엔공항', country: 'NO' },
+      { code: 'HEL', city: '헬싱키', cityEn: 'Helsinki', airport: '헬싱키반타공항', country: 'FI' },
+      // 아일랜드
+      { code: 'DUB', city: '더블린', cityEn: 'Dublin', airport: '더블린공항', country: 'IE' },
+      // 러시아
+      { code: 'SVO', city: '모스크바', cityEn: 'Moscow', airport: '셰레메티예보공항', country: 'RU' },
+      { code: 'DME', city: '모스크바', cityEn: 'Moscow', airport: '도모데도보공항', country: 'RU' },
+      { code: 'VKO', city: '모스크바', cityEn: 'Moscow', airport: '브누코보공항', country: 'RU' },
+      { code: 'LED', city: '상트페테르부르크', cityEn: 'St. Petersburg', airport: '풀코보공항', country: 'RU' },
+      { code: 'KZN', city: '카잔', cityEn: 'Kazan', airport: '카잔국제공항', country: 'RU' },
+      { code: 'SVX', city: '예카테린부르크', cityEn: 'Yekaterinburg', airport: '콜초보공항', country: 'RU' },
+      { code: 'ROV', city: '로스토프나도누', cityEn: 'Rostov-on-Don', airport: '플라토프공항', country: 'RU' },
+      { code: 'KRR', city: '크라스노다르', cityEn: 'Krasnodar', airport: '크라스노다르공항', country: 'RU' },
+      { code: 'AER', city: '소치', cityEn: 'Sochi', airport: '소치국제공항', country: 'RU' },
+      { code: 'OVB', city: '노보시비르스크', cityEn: 'Novosibirsk', airport: '톨마체보공항', country: 'RU' },
+      { code: 'UFA', city: '우파', cityEn: 'Ufa', airport: '우파국제공항', country: 'RU' },
+      { code: 'VVO', city: '블라디보스토크', cityEn: 'Vladivostok', airport: '블라디보스토크공항', country: 'RU' },
+      // 우크라이나
+      { code: 'KBP', city: '키이우', cityEn: 'Kyiv', airport: '보리스필공항', country: 'UA' },
+      { code: 'IEV', city: '키이우', cityEn: 'Kyiv', airport: '이고르시코르스키공항', country: 'UA' },
+      { code: 'ODS', city: '오데사', cityEn: 'Odesa', airport: '오데사국제공항', country: 'UA' },
+      { code: 'LWO', city: '리비우', cityEn: 'Lviv', airport: '리비우공항', country: 'UA' },
+      { code: 'DNK', city: '드니프로', cityEn: 'Dnipro', airport: '드니프로공항', country: 'UA' },
+      { code: 'HRK', city: '하르키우', cityEn: 'Kharkiv', airport: '하르키우공항', country: 'UA' },
+      // 벨라루스
+      { code: 'MSQ', city: '민스크', cityEn: 'Minsk', airport: '민스크국제공항', country: 'BY' },
+      // 중동 (UAE)
+      { code: 'DXB', city: '두바이', cityEn: 'Dubai', airport: '두바이국제공항', country: 'AE' },
+      { code: 'AUH', city: '아부다비', cityEn: 'Abu Dhabi', airport: '아부다비국제공항', country: 'AE' },
+      { code: 'SHJ', city: '샤르자', cityEn: 'Sharjah', airport: '샤르자국제공항', country: 'AE' },
+      { code: 'AAN', city: '알아인', cityEn: 'Al Ain', airport: '알아인국제공항', country: 'AE' },
+      // 중동 (사우디아라비아)
+      { code: 'RUH', city: '리야드', cityEn: 'Riyadh', airport: '킹할리드국제공항', country: 'SA' },
+      { code: 'JED', city: '제다', cityEn: 'Jeddah', airport: '킹압둘아지즈국제공항', country: 'SA' },
+      { code: 'DMM', city: '담맘', cityEn: 'Dammam', airport: '킹파드국제공항', country: 'SA' },
+      { code: 'MED', city: '메디나', cityEn: 'Medina', airport: '프린스모하메드빈압둘아지즈공항', country: 'SA' },
+      { code: 'AHB', city: '아브하', cityEn: 'Abha', airport: '아브하공항', country: 'SA' },
+      { code: 'TUU', city: '타부크', cityEn: 'Tabuk', airport: '타부크공항', country: 'SA' },
+      { code: 'GIZ', city: '지잔', cityEn: 'Jizan', airport: '지잔공항', country: 'SA' },
+      // 중동 (카타르/쿠웨이트/바레인/오만)
+      { code: 'DOH', city: '도하', cityEn: 'Doha', airport: '하마드국제공항', country: 'QA' },
+      { code: 'KWI', city: '쿠웨이트', cityEn: 'Kuwait', airport: '쿠웨이트국제공항', country: 'KW' },
+      { code: 'BAH', city: '바레인', cityEn: 'Bahrain', airport: '바레인국제공항', country: 'BH' },
+      { code: 'MCT', city: '무스카트', cityEn: 'Muscat', airport: '무스카트국제공항', country: 'OM' },
+      // 중동 (레바논/요르단/이스라엘)
+      { code: 'BEY', city: '베이루트', cityEn: 'Beirut', airport: '베이루트공항', country: 'LB' },
+      { code: 'AMM', city: '암만', cityEn: 'Amman', airport: '퀸알리아국제공항', country: 'JO' },
+      { code: 'TLV', city: '텔아비브', cityEn: 'Tel Aviv', airport: '벤구리온공항', country: 'IL' },
+      // 중동 (이란)
+      { code: 'IKA', city: '테헤란', cityEn: 'Tehran', airport: '이맘호메이니국제공항', country: 'IR' },
+      { code: 'THR', city: '테헤란', cityEn: 'Tehran', airport: '메흐라바드공항', country: 'IR' },
+      // 중동 (이라크)
+      { code: 'BGW', city: '바그다드', cityEn: 'Baghdad', airport: '바그다드국제공항', country: 'IQ' },
+      { code: 'EBL', city: '에르빌', cityEn: 'Erbil', airport: '에르빌국제공항', country: 'IQ' },
+      { code: 'BSR', city: '바스라', cityEn: 'Basra', airport: '바스라국제공항', country: 'IQ' },
+      { code: 'ISU', city: '술레이마니야', cityEn: 'Sulaymaniyah', airport: '술레이마니야공항', country: 'IQ' },
+      { code: 'NJF', city: '나자프', cityEn: 'Najaf', airport: '나자프국제공항', country: 'IQ' },
+      { code: 'OSM', city: '모술', cityEn: 'Mosul', airport: '모술국제공항', country: 'IQ' },
+      // 카프카스
+      { code: 'GYD', city: '바쿠', cityEn: 'Baku', airport: '헤이다르알리예프공항', country: 'AZ' },
+      { code: 'TBS', city: '트빌리시', cityEn: 'Tbilisi', airport: '트빌리시공항', country: 'GE' },
+      { code: 'EVN', city: '예레반', cityEn: 'Yerevan', airport: '즈바르트노츠공항', country: 'AM' },
+      // 중앙아시아 (카자흐스탄)
+      { code: 'ALA', city: '알마티', cityEn: 'Almaty', airport: '알마티국제공항', country: 'KZ' },
+      { code: 'NQZ', city: '누르술탄', cityEn: 'Nur-Sultan', airport: '누르술탄나자르바예프공항', country: 'KZ' },
+      { code: 'TSE', city: '아스타나', cityEn: 'Astana', airport: '아스타나국제공항', country: 'KZ' },
+      { code: 'KGF', city: '카라간다', cityEn: 'Karaganda', airport: '카라간다공항', country: 'KZ' },
+      { code: 'CIT', city: '침켄트', cityEn: 'Shymkent', airport: '침켄트공항', country: 'KZ' },
+      { code: 'SCO', city: '악타우', cityEn: 'Aktau', airport: '악타우공항', country: 'KZ' },
+      // 중앙아시아 (우즈베키스탄)
+      { code: 'TAS', city: '타슈켄트', cityEn: 'Tashkent', airport: '타슈켄트국제공항', country: 'UZ' },
+      { code: 'SKD', city: '사마르칸트', cityEn: 'Samarkand', airport: '사마르칸트공항', country: 'UZ' },
+      { code: 'BHK', city: '부하라', cityEn: 'Bukhara', airport: '부하라공항', country: 'UZ' },
+      { code: 'UGC', city: '우르겐치', cityEn: 'Urgench', airport: '우르겐치공항', country: 'UZ' },
+      // 중앙아시아 (기타)
+      { code: 'FRU', city: '비슈케크', cityEn: 'Bishkek', airport: '마나스국제공항', country: 'KG' },
+      { code: 'OSS', city: '오시', cityEn: 'Osh', airport: '오시공항', country: 'KG' },
+      { code: 'ASB', city: '아슈하바트', cityEn: 'Ashgabat', airport: '아슈하바트국제공항', country: 'TM' },
+      { code: 'DYU', city: '두샨베', cityEn: 'Dushanbe', airport: '두샨베국제공항', country: 'TJ' },
+      // 북아프리카 (이집트)
+      { code: 'CAI', city: '카이로', cityEn: 'Cairo', airport: '카이로국제공항', country: 'EG' },
+      { code: 'SSH', city: '샤름엘셰이크', cityEn: 'Sharm El Sheikh', airport: '샤름엘셰이크공항', country: 'EG' },
+      { code: 'HRG', city: '후르가다', cityEn: 'Hurghada', airport: '후르가다국제공항', country: 'EG' },
+      { code: 'LXR', city: '룩소르', cityEn: 'Luxor', airport: '룩소르국제공항', country: 'EG' },
+      { code: 'ASW', city: '아스완', cityEn: 'Aswan', airport: '아스완국제공항', country: 'EG' },
+      // 북아프리카 (모로코)
+      { code: 'CMN', city: '카사블랑카', cityEn: 'Casablanca', airport: '모하메드5세공항', country: 'MA' },
+      { code: 'RAK', city: '마라케시', cityEn: 'Marrakech', airport: '마라케시메나라공항', country: 'MA' },
+      { code: 'FEZ', city: '페즈', cityEn: 'Fez', airport: '페즈사이스공항', country: 'MA' },
+      { code: 'TNG', city: '탕헤르', cityEn: 'Tangier', airport: '탕헤르이븐바투타공항', country: 'MA' },
+      { code: 'AGA', city: '아가디르', cityEn: 'Agadir', airport: '아가디르알마시라공항', country: 'MA' },
+      // 북아프리카 (튀니지)
+      { code: 'TUN', city: '튀니스', cityEn: 'Tunis', airport: '튀니스카르타고공항', country: 'TN' },
+      { code: 'DJE', city: '제르바', cityEn: 'Djerba', airport: '제르바제르지스공항', country: 'TN' },
+      { code: 'MIR', city: '모나스티르', cityEn: 'Monastir', airport: '모나스티르공항', country: 'TN' },
+      { code: 'SFA', city: '스팍스', cityEn: 'Sfax', airport: '스팍스티나공항', country: 'TN' },
+      // 북아프리카 (알제리)
+      { code: 'ALG', city: '알제', cityEn: 'Algiers', airport: '우아리부메디엔공항', country: 'DZ' },
+      { code: 'ORN', city: '오랑', cityEn: 'Oran', airport: '오랑공항', country: 'DZ' },
+      { code: 'CZL', city: '콘스탄틴', cityEn: 'Constantine', airport: '콘스탄틴공항', country: 'DZ' },
+      // 북아프리카 (리비아)
+      { code: 'TIP', city: '트리폴리', cityEn: 'Tripoli', airport: '트리폴리국제공항', country: 'LY' },
+      { code: 'BEN', city: '벵가지', cityEn: 'Benghazi', airport: '베니나국제공항', country: 'LY' },
+      // 오세아니아
+      { code: 'SYD', city: '시드니', cityEn: 'Sydney', airport: '시드니국제공항', country: 'AU' },
+    ];
+    // ======== 유틸 ========
+    const $ = sel => document.querySelector(sel);
+    const qs = new URLSearchParams(location.search);
+    function parseRoute(routeStr) {
+      if (!routeStr) return { origin: '', destination: '' };
+      const [origin, destination] = routeStr.split('-').map(s => (s || '').toUpperCase().trim());
+      return { origin, destination };
+    }
+    function todayISO() {
+      const d = new Date();
+      const tzOff = d.getTimezoneOffset();
+      const d2 = new Date(d.getTime() - tzOff * 60000);
+      return d2.toISOString().slice(0, 10);
+    }
+    // ======== API 어댑터 ========
+    /**
+     * 표준화된 입력으로 항공편명 배열 반환
+     * @param {{date:string, airline:string, origin:string, destination:string, apiKey?:string}} p
+     * @returns {Promise<string[]>} ex) ["KE701","KE703"]
+     */
+    async function fetchFlights(p) {
+      const { date, airline, origin, destination, apiKey } = p;
+      if (PROVIDER === 'demo') {
+        // --- DEMO 모드: 실제 호출 없이 예시 데이터 반환 ---
+        console.log('🎭 DEMO Mode: Using sample data');
+        console.log('📝 Query:', { date, airline, origin, destination });
+        await sleep(500);
+        const demoMap = {
+          'KE:ICN-NRT': ['KE701', 'KE703', 'KE705'],
+          'OZ:ICN-NRT': ['OZ102', 'OZ104'],
+          'JL:ICN-HND': ['JL090', 'JL092'],
+          'NH:ICN-HND': ['NH862', 'NH864'],
+          'SQ:ICN-SIN': ['SQ605', 'SQ607'],
+          'DL:ICN-LAX': ['DL200', 'DL202'],
+          'KE:LAX-ICN': ['KE012', 'KE018'],
+        };
+        const key = `${airline}:${origin}-${destination}`;
+        const base = demoMap[key] || ['XX100', 'XX102'];
+        // 날짜에 따라 약간 다르게
+        const salt = Number(date.replaceAll('-', '')) % 2;
+        const result = salt ? base : base.slice(0, Math.max(1, base.length - 1));
+        console.log('✈️ DEMO Flight Numbers:', result);
+        return result;
+      }
+      if (PROVIDER === 'airlabs') {
+        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        // 참고: Airlabs API
+        // endpoint: [https://airlabs.co/api/v9/schedules](https://airlabs.co/api/v9/schedules)
+        // params: api_key, dep_iata, arr_iata, airline_iata
+        // Note: Returns schedules from current time + 10 hours (no date parameter needed)
+        const url = new URL('[https://airlabs.co/api/v9/schedules](https://airlabs.co/api/v9/schedules)');
+        url.searchParams.set('api_key', apiKey);
+        if (origin) url.searchParams.set('dep_iata', origin);
+        if (destination) url.searchParams.set('arr_iata', destination);
+        if (airline) url.searchParams.set('airline_iata', airline);
+        console.log('🛫 Airlabs API Request:', url.toString());
+        const res = await fetch(url.toString());
+        if (!res.ok) {
+          console.error('❌ API Error:', res.status, res.statusText);
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        console.log('✅ Airlabs API Response:', data);
+        // 방어적 파싱 - Airlabs API response structure
+        const flights = (data?.response || [])
+          .map(item => item?.flight_iata || item?.flight_number || null)
+          .filter(Boolean);
+        console.log('✈️ Parsed Flight Numbers:', flights);
+        // 중복 제거 + 정렬
+        const uniqueFlights = Array.from(new Set(flights)).sort();
+        console.log('📋 Final Flight List:', uniqueFlights);
+        return uniqueFlights;
+      }
+      if (PROVIDER === 'custom') {
+        // 사내/다른 API에 맞게 수정
+        // const res = await fetch('/your-endpoint?date=...&airline=...&origin=...&destination=...');
+        // const data = await res.json();
+        // return data.flightNumbers; // ["KE701", ...]
+        throw new Error('custom 제공자는 구현 필요');
+      }
+      throw new Error('알 수 없는 제공자');
+    }
+    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+    // ======== 공항 검색 ========
+    function searchAirports(query) {
+      if (!query || query.length < 1) return [];
+      const q = query.toLowerCase().trim();
+      return AIRPORTS.filter(ap => {
+        return ap.code.toLowerCase().includes(q) ||
+               ap.city.includes(query) ||
+               ap.cityEn.toLowerCase().includes(q) ||
+               ap.airport.includes(query);
+      }).slice(0, 10); // 최대 10개
+    }
+    function getAirportByCode(code) {
+      return AIRPORTS.find(ap => ap.code.toUpperCase() === code.toUpperCase());
+    }
+    // 자동완성 UI
+    class AutocompleteField {
+      constructor(inputId, listId) {
+        this.input = $(inputId);
+        this.list = $(listId);
+        this.selectedCode = '';
+        this.selectedIndex = -1;
+        this.results = [];
+        this.input.addEventListener('input', () => this.handleInput());
+        this.input.addEventListener('focus', () => this.handleInput());
+        this.input.addEventListener('blur', () => setTimeout(() => this.hide(), 200));
+        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        // 외부 클릭시 닫기
+        document.addEventListener('click', (e) => {
+          if (!this.input.contains(e.target) && !this.list.contains(e.target)) {
+            this.hide();
+          }
+        });
+      }
+      handleInput() {
+        const query = this.input.value.trim();
+        this.results = searchAirports(query);
+        if (this.results.length > 0) {
+          this.render();
+          this.show();
+        } else {
+          this.hide();
+        }
+        // 정확히 코드만 입력한 경우 자동 선택
+        const exact = getAirportByCode(query);
+        if (exact) {
+          this.selectedCode = exact.code;
+        } else {
+          this.selectedCode = '';
+        }
+      }
+      handleKeydown(e) {
+        if (!this.list.classList.contains('show')) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
+          this.render();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+          this.render();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (this.selectedIndex >= 0 && this.results[this.selectedIndex]) {
+            this.select(this.results[this.selectedIndex]);
+          }
+        } else if (e.key === 'Escape') {
+          this.hide();
+        }
+      }
+      render() {
+        this.list.innerHTML = '';
+        this.results.forEach((ap, idx) => {
+          const item = document.createElement('div');
+          item.className = 'autocomplete-item' + (idx === this.selectedIndex ? ' selected' : '');
+          const cityName = currentLang === 'en' ? ap.cityEn : ap.city;
+          item.innerHTML = `
+            <div>
+              <span class="code">${ap.code}</span>
+              <span class="info">${cityName} - ${ap.airport}</span>
+            </div>
+          `;
+          item.addEventListener('click', () => this.select(ap));
+          this.list.appendChild(item);
+        });
+      }
+      select(airport) {
+        this.selectedCode = airport.code;
+        const cityName = currentLang === 'en' ? airport.cityEn : airport.city;
+        this.input.value = `${airport.code} - ${cityName}`;
+        this.hide();
+      }
+      show() {
+        this.list.classList.add('show');
+      }
+      hide() {
+        this.list.classList.remove('show');
+        this.selectedIndex = -1;
+      }
+      getCode() {
+        // 먼저 선택된 코드 반환
+        if (this.selectedCode) return this.selectedCode;
+        // 입력값에서 코드 추출 시도
+        const val = this.input.value.trim();
+        // "ICN - 인천" 형식
+        const match = val.match(/^([A-Z]{3})\s*-/);
+        if (match) return match[1];
+        // 그냥 3글자 대문자 코드
+        if (/^[A-Z]{3}$/.test(val)) {
+          const ap = getAirportByCode(val);
+          return ap ? ap.code : '';
+        }
+        // 도시명으로 검색해서 첫번째 결과
+        const results = searchAirports(val);
+        return results.length > 0 ? results[0].code : '';
+      }
+      setCode(code) {
+        const ap = getAirportByCode(code);
+        if (ap) {
+          this.selectedCode = ap.code;
+          const cityName = currentLang === 'en' ? ap.cityEn : ap.city;
+          this.input.value = `${ap.code} - ${cityName}`;
+        } else {
+          this.input.value = code;
+        }
+      }
+    }
+    // ======== 렌더링 ========
+    function renderCriteria({date, airline, origin, destination}) {
+      const wrap = $('#criteria');
+      wrap.innerHTML = '';
+      const add = (label, value) => {
+        const el = document.createElement('span');
+        el.className = 'chip';
+        el.textContent = `${label}: ${value || '-'}`;
+        wrap.appendChild(el);
+      };
+      add(t('datePrefix'), date || '-');
+      add(t('airlinePrefix'), airline || '-');
+      add(t('routePrefix'), origin && destination ? `${origin}→${destination}` : '-');
+      const providerChip = document.createElement('span');
+      providerChip.className = 'chip';
+      providerChip.textContent = `${t('providerPrefix')}: ${PROVIDER}`;
+      wrap.appendChild(providerChip);
+    }
+    function renderFlights(list) {
+      const area = $('#resultArea');
+      area.innerHTML = '';
+      if (!list?.length) {
+        area.innerHTML = `<div class="muted">${t('noResults')}</div>`;
+        return;
+      }
+      list.forEach(fn => {
+        const row = document.createElement('div');
+        row.className = 'flight';
+        row.innerHTML = `
+          <div class="left">
+            <span class="badge">${t('flightLabel')}</span>
+            <strong style="letter-spacing:.4px">${fn}</strong>
+          </div>
+          <span class="muted">${t('flightNumber')}</span>
+        `;
+        area.appendChild(row);
+      });
+    }
+    function setLoading(on, msg) {
+      const host = $('#loadState');
+      if (on) {
+        const loadMsg = msg || t('searching');
+        host.innerHTML = `<div class="row"><div class="spinner"></div><span class="muted">${loadMsg}</span></div>`;
+      } else {
+        host.innerHTML = '';
+      }
+    }
+    function showInputSection(show) {
+      $('#input-section').hidden = !show;
+    }
+    function setKeyStatus(exists) {
+      const node = $('#keyStatus');
+      node.textContent = exists ? t('statusActive') : t('statusInactive');
+      node.style.borderColor = exists ? 'rgba(46,196,182,.35)' : 'var(--border)';
+      node.style.background = exists ? 'rgba(46,196,182,.1)' : 'var(--pill)';
+      node.style.color = exists ? 'var(--ok)' : 'var(--muted)';
+      // Toggle UI based on key existence
+      if (exists) {
+        $('#apiKeyInputArea').style.display = 'none';
+        $('#apiKeySavedArea').style.display = 'block';
+      } else {
+        $('#apiKeyInputArea').style.display = 'block';
+        $('#apiKeySavedArea').style.display = 'none';
+      }
+    }
+    // ======== 이벤트 & 흐름 ========
+    let originField, destinationField;
+    async function main() {
+      // API 키 초기화
+      const storedKey = localStorage.getItem(STORAGE_KEY) || '';
+      $('#apiKey').value = storedKey;
+      setKeyStatus(!!storedKey);
+      // 자동완성 필드 초기화
+      originField = new AutocompleteField('#originInput', '#originList');
+      destinationField = new AutocompleteField('#destinationInput', '#destinationList');
+      // 쿼리 파라미터 파싱
+      const date = (qs.get('date') || '').trim();
+      const airline = (qs.get('airline') || '').toUpperCase().trim();
+      const route = (qs.get('route') || '').toUpperCase().trim();
+      const { origin, destination } = parseRoute(route);
+      // 개별 파라미터도 체크
+      const originParam = (qs.get('origin') || origin || '').toUpperCase().trim();
+      const destParam = (qs.get('destination') || destination || '').toUpperCase().trim();
+      // UI 초기값
+      $('#dateInput').value = date || todayISO();
+      $('#airlineInput').value = airline || '';
+      if (originParam) originField.setCode(originParam);
+      if (destParam) destinationField.setCode(destParam);
+      const hasAllParams = !!(date && airline && originParam && destParam);
+      showInputSection(true); // Always show input section
+      renderCriteria({ date: date || $('#dateInput').value, airline: airline || $('#airlineInput').value, origin: originParam || '', destination: destParam || '' });
+      if (hasAllParams) {
+        await doSearch({ date, airline, origin: originParam, destination: destParam });
+      } else {
+        // 입력 대기 상태
+        $('#resultArea').innerHTML = `<div class="muted">${t('waitingForInput')}</div>`;
+      }
+      // Initialize language selector
+      $('#langSelect').value = currentLang;
+      updateUILanguage();
+    }
+    async function doSearch({ date, airline, origin, destination, forceDemo = false }) {
+      try {
+        console.log('🔍 Search initiated:', { date, airline, origin, destination, forceDemo });
+        setLoading(true);
+        renderCriteria({ date, airline, origin, destination });
+        const apiKey = localStorage.getItem(STORAGE_KEY) || '';
+        const usingDemo = forceDemo || (!apiKey && PROVIDER !== 'custom');
+        console.log('🔑 API Key status:', apiKey ? 'Present' : 'Not found');
+        console.log('🎯 Using mode:', usingDemo ? 'DEMO' : PROVIDER);
+        const prevProvider = PROVIDER;
+        if (usingDemo) PROVIDER = 'demo';
+        const flights = await fetchFlights({ date, airline, origin, destination, apiKey });
+        renderFlights(flights);
+        if (usingDemo) PROVIDER = prevProvider;
+        console.log('✅ Search completed successfully');
+      } catch (err) {
+        console.error('❌ Search failed:', err);
+        $('#resultArea').innerHTML = `<div class="error">Error: ${(err && err.message) || err}</div>`;
+      } finally {
+        setLoading(false);
+      }
+    }
+    // 이벤트 바인딩
+    $('#langSelect').addEventListener('change', (e) => {
+      setLanguage(e.target.value);
+    });
+    $('#saveKey').addEventListener('click', () => {
+      const v = $('#apiKey').value.trim();
+      if (!v) { alert(t('alertNoKey')); return; }
+      localStorage.setItem(STORAGE_KEY, v);
+      setKeyStatus(true);
+    });
+    $('#editKey').addEventListener('click', () => {
+      $('#apiKeyInputArea').style.display = 'block';
+      $('#apiKeySavedArea').style.display = 'none';
+      const storedKey = localStorage.getItem(STORAGE_KEY) || '';
+      $('#apiKey').value = storedKey;
+      $('#apiKey').focus();
+    });
+    $('#clearKey').addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      $('#apiKey').value = '';
+      setKeyStatus(false);
+    });
+    $('#searchBtn').addEventListener('click', () => {
+      const date = $('#dateInput').value;
+      const airline = $('#airlineInput').value;
+      const origin = originField.getCode();
+      const destination = destinationField.getCode();
+      if (!date || !airline || !origin || !destination) {
+        alert(t('alertSelectAll'));
+        return;
+      }
+      // 주소창 쿼리 동기화(옵션)
+      const next = new URL(location.href);
+      next.searchParams.set('date', date);
+      next.searchParams.set('airline', airline);
+      next.searchParams.set('origin', origin);
+      next.searchParams.set('destination', destination);
+      // 레거시 route 파라미터도 유지
+      next.searchParams.set('route', `${origin}-${destination}`);
+      history.replaceState(null, '', next.toString());
+      doSearch({ date, airline, origin, destination });
+    });
+    $('#demoBtn').addEventListener('click', () => {
+      const date = $('#dateInput').value || todayISO();
+      const airline = $('#airlineInput').value || 'KE';
+      const origin = originField.getCode() || 'ICN';
+      const destination = destinationField.getCode() || 'NRT';
+      doSearch({ date, airline, origin, destination, forceDemo: true });
+    });
+    // 초기 실행
+    main();
+  </script>
+</body>
+</html>
