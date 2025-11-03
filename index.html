@@ -122,7 +122,7 @@
           <label for="apiKey">API Key</label>
           <div id="apiKeyInputArea">
             <div class="row">
-              <input id="apiKey" type="text" placeholder="Enter your Airlabs API key" />
+              <input id="apiKey" type="text" placeholder="Enter your Aviationstack API key" />
               <button id="saveKey" class="btn">Save</button>
             </div>
             <p class="help">Stored locally (LocalStorage). If no key, you can use <b>DEMO</b> mode.</p>
@@ -200,21 +200,21 @@
       <div id="resultArea" class="list"></div>
     </section>
     <footer>
-      <small>Provider: Airlabs API. Returns schedules from current time + 10 hours. Calls may be restricted by browser security policies.</small>
+      <small>Provider: Aviationstack Flights API. Free plans use HTTP and may be blocked by browser security/CORS policies.</small>
     </footer>
   </div>
   <script>
     // ========= 설정 영역 =========
     const STORAGE_KEY = 'FLIGHT_API_KEY';
     const LANG_KEY = 'FLIGHT_LANG';
-    // 제공자 선택: 'airlabs' | 'custom' | 'demo'
-    let PROVIDER = 'airlabs';
+    // 제공자 선택: 'aviationstack' | 'airlabs' | 'custom' | 'demo'
+    let PROVIDER = 'aviationstack';
     // ======== 다국어 지원 ========
     const i18n = {
       en: {
         title: "Ayça's Flight Number Search",
         apiKeyLabel: 'API Key',
-        apiKeyPlaceholder: 'Enter your Airlabs API key',
+        apiKeyPlaceholder: 'Enter your Aviationstack API key',
         saveBtn: 'Save',
         editBtn: 'Edit API Key',
         clearBtn: 'Clear',
@@ -245,14 +245,14 @@
         routePrefix: 'Route',
         providerPrefix: 'Provider',
         languageLabel: 'Language',
-        footerText: 'Provider: Airlabs API. Returns schedules from current time + 10 hours. Calls may be restricted by browser security policies.',
+        footerText: 'Provider: Aviationstack Flights API. Free plans use HTTP and may be blocked by browser security/CORS policies.',
         alertNoKey: 'Please enter an API key.',
         alertSelectAll: 'Please select date, airline, origin, and destination.',
       },
       ko: {
         title: "Ayça's Flight Number Search",
         apiKeyLabel: 'API 키',
-        apiKeyPlaceholder: 'Airlabs API 키를 입력하세요',
+        apiKeyPlaceholder: 'Aviationstack API 키를 입력하세요',
         saveBtn: '저장',
         editBtn: 'API 키 수정',
         clearBtn: '삭제',
@@ -283,14 +283,14 @@
         routePrefix: '노선',
         providerPrefix: 'Provider',
         languageLabel: '언어',
-        footerText: '제공자: Airlabs API. 현재 시간부터 10시간 이후까지의 일정을 반환합니다. 브라우저 보안 정책에 따라 호출이 제한될 수 있습니다.',
+        footerText: '제공자: Aviationstack Flights API. 무료 요금제는 HTTP만 지원하여 브라우저 보안/CORS 정책에 의해 차단될 수 있습니다.',
         alertNoKey: 'API 키를 입력하세요.',
         alertSelectAll: '날짜, 항공사, 출발지, 도착지를 모두 선택해주세요.',
       },
       tr: {
         title: "Ayça'nın Uçuş Numarası Arama",
         apiKeyLabel: 'API Anahtarı',
-        apiKeyPlaceholder: 'Airlabs API anahtarınızı girin',
+        apiKeyPlaceholder: 'Aviationstack API anahtarınızı girin',
         saveBtn: 'Kaydet',
         editBtn: 'API Anahtarını Düzenle',
         clearBtn: 'Temizle',
@@ -321,7 +321,7 @@
         routePrefix: 'Rota',
         providerPrefix: 'Sağlayıcı',
         languageLabel: 'Dil',
-        footerText: 'Sağlayıcı: Airlabs API. Şu andan itibaren 10 saat sonraya kadar olan programları döndürür. Tarayıcı güvenlik politikalarına göre çağrılar kısıtlanabilir.',
+        footerText: 'Sağlayıcı: Aviationstack Flights API. Ücretsiz planda yalnızca HTTP vardır; tarayıcı güvenliği/CORS nedeniyle engellenebilir.',
         alertNoKey: 'Lütfen bir API anahtarı girin.',
         alertSelectAll: 'Lütfen tarih, havayolu, kalkış ve varış noktalarını seçin.',
       }
@@ -709,13 +709,43 @@
         console.log('✈️ DEMO Flight Numbers:', result);
         return result;
       }
+      if (PROVIDER === 'aviationstack') {
+        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        // Aviationstack Flights API
+        // endpoint: http://api.aviationstack.com/v1/flights
+        // params: access_key, dep_iata, arr_iata, airline_iata, flight_date (YYYY-MM-DD), flight_status
+        const url = new URL('http://api.aviationstack.com/v1/flights');
+        url.searchParams.set('access_key', apiKey);
+        if (origin) url.searchParams.set('dep_iata', origin);
+        if (destination) url.searchParams.set('arr_iata', destination);
+        if (airline) url.searchParams.set('airline_iata', airline);
+        if (date) url.searchParams.set('flight_date', date);
+        // Use scheduled by default as per example
+        url.searchParams.set('flight_status', 'scheduled');
+        console.log('🛫 Aviationstack API Request:', url.toString());
+        const res = await fetch(url.toString());
+        if (!res.ok) {
+          console.error('❌ API Error:', res.status, res.statusText);
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        console.log('✅ Aviationstack API Response:', data);
+        // Aviationstack response structure: { data: [ { flight: { iata, number }, ... } ] }
+        const flights = (data?.data || [])
+          .map(item => item?.flight?.iata || (item?.airline?.iata && item?.flight?.number ? `${item.airline.iata}${item.flight.number}` : null))
+          .filter(Boolean);
+        console.log('✈️ Parsed Flight Numbers:', flights);
+        const uniqueFlights = Array.from(new Set(flights)).sort();
+        console.log('📋 Final Flight List:', uniqueFlights);
+        return uniqueFlights;
+      }
       if (PROVIDER === 'airlabs') {
         if (!apiKey) throw new Error('API 키가 필요합니다.');
         // 참고: Airlabs API
         // endpoint: [https://airlabs.co/api/v9/schedules](https://airlabs.co/api/v9/schedules)
         // params: api_key, dep_iata, arr_iata, airline_iata
         // Note: Returns schedules from current time + 10 hours (no date parameter needed)
-        const url = new URL('[https://airlabs.co/api/v9/schedules](https://airlabs.co/api/v9/schedules)');
+        const url = new URL('https://airlabs.co/api/v9/schedules');
         url.searchParams.set('api_key', apiKey);
         if (origin) url.searchParams.set('dep_iata', origin);
         if (destination) url.searchParams.set('arr_iata', destination);
