@@ -714,7 +714,8 @@
         // Aviationstack Flights API
         // endpoint: http://api.aviationstack.com/v1/flights
         // params: access_key, dep_iata, arr_iata, airline_iata, flight_date (YYYY-MM-DD), flight_status
-        const url = new URL('http://api.aviationstack.com/v1/flights');
+        // Use HTTPS to avoid mixed content when site is served over HTTPS (e.g., GitHub Pages)
+        const url = new URL('https://api.aviationstack.com/v1/flights');
         url.searchParams.set('access_key', apiKey);
         if (origin) url.searchParams.set('dep_iata', origin);
         if (destination) url.searchParams.set('arr_iata', destination);
@@ -730,6 +731,15 @@
         }
         const data = await res.json();
         console.log('✅ Aviationstack API Response:', data);
+        // Handle Aviationstack error payloads that still return 200
+        if (data && data.error) {
+          const type = data.error.type || '';
+          const info = data.error.info || 'API error';
+          if (type === 'https_access_restricted') {
+            throw new Error('Aviationstack HTTPS access is restricted on your plan. Use a proxy, serve this page over HTTP, or upgrade your plan.');
+          }
+          throw new Error(info);
+        }
         // Aviationstack response structure: { data: [ { flight: { iata, number }, ... } ] }
         const flights = (data?.data || [])
           .map(item => item?.flight?.iata || (item?.airline?.iata && item?.flight?.number ? `${item.airline.iata}${item.flight.number}` : null))
