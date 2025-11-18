@@ -1,7 +1,7 @@
 import { sleep } from './utils.js';
 
-// 제공자 선택: 'aviationstack' | 'airlabs' | 'custom' | 'demo'
-export let PROVIDER = 'aviationstack';
+// 제공자 선택: 'flightapi' | 'aviationstack' | 'airlabs' | 'custom' | 'demo'
+export let PROVIDER = 'flightapi';
 
 export function setProvider(p) {
     PROVIDER = p;
@@ -35,6 +35,91 @@ export async function fetchFlights(p) {
         const result = salt ? base : base.slice(0, Math.max(1, base.length - 1));
         console.log('✈️ DEMO Flight Numbers:', result);
         return result;
+    }
+    if (PROVIDER === 'flightapi') {
+        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        if (!origin) throw new Error('출발지 공항 IATA 코드가 필요합니다.');
+
+        // FlightAPI.io Schedule API
+        // Example:
+        //   https://api.flightapi.io/schedule/{API_KEY}?mode=departures&iata=TBS&day=1
+        //
+        // - mode: departures (출발편 기준 조회)
+        // - iata: 공항 IATA 코드 (여기서는 origin)
+        // - day: 오늘을 기준으로 한 날짜 오프셋 (대략적인 매핑)
+        const url = new URL(`https://api.flightapi.io/schedule/${encodeURIComponent(apiKey)}`);
+
+        // 항상 출발편 기준으로 조회
+        const mode = 'departures';
+        url.searchParams.set('mode', mode);
+        url.searchParams.set('iata', origin);
+
+        // date(YYYY-MM-DD)를 오늘 기준 상대 일수로 변환해서 day 파라미터로 사용
+        if (date) {
+            const today = new Date();
+            const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const target = new Date(date + 'T00:00:00');
+            const diffDays = Math.round((target.getTime() - todayLocal.getTime()) / 86400000);
+            url.searchParams.set('day', String(diffDays));
+        }
+
+        console.log('🛫 FlightAPI.io Schedule Request:', url.toString());
+        const res = await fetch(url.toString());
+        if (!res.ok) {
+            console.error('❌ FlightAPI.io HTTP Error:', res.status, res.statusText);
+            throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        console.log('✅ FlightAPI.io Schedule Response:', data);
+
+        // 방어적 파싱: departures 리스트
+        const scheduleItems =
+            data?.airport?.pluginData?.schedule?.[mode]?.data ||
+            data?.airport?.pluginData?.schedule?.departures?.data ||
+            [];
+
+        // 항공편명 리스트 추출 + 조건 필터링
+        const flights = scheduleItems
+            .map(item => item?.flight)
+            .filter(Boolean)
+            .filter(f => {
+                // 항공사 필터
+                if (airline) {
+                    const code = f.airline?.code?.iata || f.owner?.code?.iata;
+                    if (!code || code.toUpperCase() !== airline.toUpperCase()) return false;
+                }
+                // 도착 공항 필터
+                if (destination) {
+                    const destCode = f.airport?.destination?.code?.iata;
+                    if (!destCode || destCode.toUpperCase() !== destination.toUpperCase()) return false;
+                }
+                // 날짜 필터 (스케줄 출발 시각 기준, YYYY-MM-DD 매칭)
+                if (date) {
+                    const ts =
+                        f.time?.scheduled?.departure ??
+                        f.time?.estimated?.departure ??
+                        f.time?.real?.departure ??
+                        null;
+                    if (!ts) return false;
+                    const flightDate = new Date(ts * 1000).toISOString().slice(0, 10);
+                    if (flightDate !== date) return false;
+                }
+                return true;
+            })
+            .map(f => {
+                const primary = f.identification?.number?.default;
+                if (primary) return String(primary).toUpperCase();
+                const airlineCode = (f.airline?.code?.iata || f.owner?.code?.iata || '').toUpperCase();
+                const altNum = f.identification?.number?.alternative;
+                if (airlineCode && altNum) return airlineCode + String(altNum);
+                return null;
+            })
+            .filter(Boolean);
+
+        console.log('✈️ Parsed Flight Numbers (FlightAPI.io):', flights);
+        const uniqueFlights = Array.from(new Set(flights)).sort();
+        console.log('📋 Final Flight List (FlightAPI.io):', uniqueFlights);
+        return uniqueFlights;
     }
     if (PROVIDER === 'aviationstack') {
         if (!apiKey) throw new Error('API 키가 필요합니다.');
