@@ -3,7 +3,7 @@ import { $ } from './utils.js';
 import { currentLang } from './ui.js';
 
 // ======== 공항 검색 ========
-function searchAirports(query) {
+export function searchAirports(query) {
     if (!query || query.length < 1) return [];
     const q = query.toLowerCase().trim();
     return AIRPORTS.filter(ap => {
@@ -14,7 +14,7 @@ function searchAirports(query) {
     }).slice(0, 10); // 최대 10개
 }
 
-function getAirportByCode(code) {
+export function getAirportByCode(code) {
     return AIRPORTS.find(ap => ap.code.toUpperCase() === code.toUpperCase());
 }
 
