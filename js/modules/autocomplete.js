@@ -110,14 +110,17 @@ export class AutocompleteField {
         // "ICN - 인천" 형식
         const match = val.match(/^([A-Z]{3})\s*-/);
         if (match) return match[1];
-        // 그냥 3글자 대문자 코드
+        // 그냥 3글자 대문자 코드 (공항 목록에 없는 코드도 허용)
         if (/^[A-Z]{3}$/.test(val)) {
-            const ap = getAirportByCode(val);
-            return ap ? ap.code : '';
+            return val; // 유효성 검사 없이 직접 반환
         }
         // 도시명으로 검색해서 첫번째 결과
         const results = searchAirports(val);
-        return results.length > 0 ? results[0].code : '';
+        if (results.length > 0) {
+            return results[0].code;
+        }
+        // 선택된 코드가 없고, 파싱이나 검색 결과도 없으면 raw input을 반환
+        return val;
     }
     setCode(code) {
         const ap = getAirportByCode(code);

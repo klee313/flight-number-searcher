@@ -44,9 +44,9 @@ export function updateUILanguage() {
     $('#demoBtn').title = t('demoBtn');
     $('#inputHint').textContent = t('inputHint');
     $('footer small').textContent = t('footerText');
-    // Update airline select options
-    const airlineSelect = $('#airlineInput');
-    airlineSelect.options[0].textContent = t('airlineSelect');
+    // Update airline select options (Removed as airlineInput is now a text input)
+    // const airlineSelect = $('#airlineInput');
+    // airlineSelect.options[0].textContent = t('airlineSelect');
     // Update status if needed
     const storedKey = localStorage.getItem(STORAGE_KEY) || '';
     setKeyStatus(!!storedKey);

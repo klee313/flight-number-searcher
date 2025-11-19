@@ -51,7 +51,7 @@ async function main() {
 
     // UI 초기값
     $('#dateInput').value = date || todayISO();
-    $('#airlineInput').value = airline || '';
+    // $('#airlineInput').value = airline || ''; // Removed as it's now a free text input
     if (originParam) originField.setCode(originParam);
     if (destParam) destinationField.setCode(destParam);
 
