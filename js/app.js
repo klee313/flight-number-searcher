@@ -94,7 +94,17 @@ async function doSearch({ date, airline, origin, destination, forceDemo = false 
         console.log('✅ Search completed successfully');
     } catch (err) {
         console.error('❌ Search failed:', err);
-        $('#resultArea').innerHTML = `<div class="error">Error: ${(err && err.message) || err}</div>`;
+        let msg = (err && err.message) || err;
+        if (msg.includes('HTTP 401') || msg.includes('API 키')) {
+            msg = t('alertNoKey');
+        } else if (msg.includes('HTTP 429')) {
+            msg = 'API Rate Limit Exceeded. Please try again later.';
+        }
+        $('#resultArea').innerHTML = `
+            <div class="error">
+                <strong>Error:</strong> ${msg}
+            </div>
+        `;
     } finally {
         setLoading(false);
     }
