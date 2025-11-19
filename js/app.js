@@ -18,7 +18,8 @@ import {
 } from './modules/api.js';
 import {
     AutocompleteField,
-    searchAirports
+    searchAirports,
+    searchAirlines
 } from './modules/autocomplete.js';
 import {
     qs,
@@ -27,7 +28,7 @@ import {
 } from './modules/utils.js';
 
 // ======== 이벤트 & 흐름 ========
-let originField, destinationField;
+let originField, destinationField, airlineField;
 
 async function main() {
     // API 키 초기화
@@ -36,11 +37,13 @@ async function main() {
     setKeyStatus(!!storedKey);
 
     // 자동완성 필드 초기화
-    originField = new AutocompleteField('#originInput', '#originList');
-    destinationField = new AutocompleteField('#destinationInput', '#destinationList');
+    originField = new AutocompleteField('#originInput', '#originList', 'airport');
+    destinationField = new AutocompleteField('#destinationInput', '#destinationList', 'airport');
+    airlineField = new AutocompleteField('#airlineInput', '#airlineList', 'airline');
+
 
     // 쿼리 파라미터 파싱
-    const date = (qs.get('date') || '').trim();
+    const date = (qs.get('date') || '').trim() || todayISO();
     const airline = (qs.get('airline') || '').toUpperCase().trim();
     const route = (qs.get('route') || '').toUpperCase().trim();
     const { origin, destination } = parseRoute(route);
@@ -50,15 +53,15 @@ async function main() {
     const destParam = (qs.get('destination') || destination || '').toUpperCase().trim();
 
     // UI 초기값
-    $('#dateInput').value = date || todayISO();
-    // $('#airlineInput').value = airline || ''; // Removed as it's now a free text input
+    $('#dateInput').value = date;
+    if (airline) airlineField.setCode(airline);
     if (originParam) originField.setCode(originParam);
     if (destParam) destinationField.setCode(destParam);
 
     const hasAllParams = !!(date && airline && originParam && destParam);
 
     showInputSection(true); // Always show input section
-    renderCriteria({ date: date || $('#dateInput').value, airline: airline || $('#airlineInput').value, origin: originParam || '', destination: destParam || '' });
+    renderCriteria({ date, airline, origin: originParam, destination: destParam });
 
     if (hasAllParams) {
         await doSearch({ date, airline, origin: originParam, destination: destParam });
@@ -138,7 +141,7 @@ $('#clearKey').addEventListener('click', () => {
 
 $('#searchBtn').addEventListener('click', () => {
     const date = $('#dateInput').value;
-    const airline = $('#airlineInput').value;
+    const airline = airlineField.getCode();
     const origin = originField.getCode();
     const destination = destinationField.getCode();
 
@@ -160,7 +163,7 @@ $('#searchBtn').addEventListener('click', () => {
 
 $('#demoBtn').addEventListener('click', () => {
     const date = $('#dateInput').value || todayISO();
-    const airline = $('#airlineInput').value || 'KE';
+    const airline = airlineField.getCode() || 'KE';
     const origin = originField.getCode() || 'ICN';
     const destination = destinationField.getCode() || 'NRT';
     doSearch({ date, airline, origin, destination, forceDemo: true });

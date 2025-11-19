@@ -58,7 +58,10 @@
         </div>
         <div class="col-6">
           <label for="airlineInput">Airline (IATA)</label>
-          <input id="airlineInput" type="text" placeholder="e.g., KE, OZ, DL" />
+          <div class="autocomplete-wrapper">
+            <input id="airlineInput" type="text" placeholder="e.g., KE, OZ, DL" autocomplete="off" />
+            <div id="airlineList" class="autocomplete-list"></div>
+          </div>
         </div>
         <div class="col-6">
           <label for="originInput">Origin (City or Airport Code)</label>
