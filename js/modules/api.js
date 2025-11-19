@@ -20,19 +20,50 @@ export async function fetchFlights(p) {
         console.log('📝 Query:', { date, airline, origin, destination });
         await sleep(500);
         const demoMap = {
-            'KE:ICN-NRT': ['KE701', 'KE703', 'KE705'],
-            'OZ:ICN-NRT': ['OZ102', 'OZ104'],
-            'JL:ICN-HND': ['JL090', 'JL092'],
-            'NH:ICN-HND': ['NH862', 'NH864'],
-            'SQ:ICN-SIN': ['SQ605', 'SQ607'],
-            'DL:ICN-LAX': ['DL200', 'DL202'],
-            'KE:LAX-ICN': ['KE012', 'KE018'],
+            'KE:ICN-NRT': [
+                { fn: 'KE701', time: '09:00' },
+                { fn: 'KE703', time: '10:10' },
+                { fn: 'KE705', time: '14:30' }
+            ],
+            'OZ:ICN-NRT': [
+                { fn: 'OZ102', time: '09:00' },
+                { fn: 'OZ104', time: '12:20' }
+            ],
+            'JL:ICN-HND': [
+                { fn: 'JL090', time: '08:00' },
+                { fn: 'JL092', time: '12:05' }
+            ],
+            'NH:ICN-HND': [
+                { fn: 'NH862', time: '07:45' },
+                { fn: 'NH864', time: '12:30' }
+            ],
+            'SQ:ICN-SIN': [
+                { fn: 'SQ605', time: '23:15' },
+                { fn: 'SQ607', time: '09:00' }
+            ],
+            'DL:ICN-LAX': [
+                { fn: 'DL200', time: '20:40' },
+                { fn: 'DL202', time: '14:30' }
+            ],
+            'KE:LAX-ICN': [
+                { fn: 'KE012', time: '23:50' },
+                { fn: 'KE018', time: '11:30' }
+            ],
         };
         const key = `${airline}:${origin}-${destination}`;
-        const base = demoMap[key] || ['XX100', 'XX102'];
+        const base = demoMap[key] || [{ fn: 'XX100', time: '10:00' }, { fn: 'XX102', time: '14:00' }];
         // 날짜에 따라 약간 다르게
         const salt = Number(date.replaceAll('-', '')) % 2;
-        const result = salt ? base : base.slice(0, Math.max(1, base.length - 1));
+        const list = salt ? base : base.slice(0, Math.max(1, base.length - 1));
+
+        const result = list.map(item => ({
+            flightNumber: item.fn,
+            airline: airline || 'XX',
+            origin: origin || 'ORG',
+            destination: destination || 'DES',
+            departureTimeText: item.time
+        }));
+
         console.log('✈️ DEMO Flight Numbers:', result);
         return result;
     }
@@ -67,21 +98,56 @@ export async function fetchFlights(p) {
             url.searchParams.set('day', String(dayParam));
         }
 
-        console.log('🛫 FlightAPI.io Schedule Request:', url.toString());
+        console.log('🛫 FlightAPI.io Schedule Request (Page 1):', url.toString());
         const res = await fetch(url.toString());
         if (!res.ok) {
             console.error('❌ FlightAPI.io HTTP Error:', res.status, res.statusText);
             throw new Error(`HTTP ${res.status}`);
         }
         const data = await res.json();
-        console.log('✅ FlightAPI.io Schedule Response:', data);
+        console.log('✅ FlightAPI.io Schedule Response (Page 1):', data);
 
-        // 방어적 파싱: departures 리스트
-        const scheduleItems =
-            data?.airport?.pluginData?.schedule?.[mode]?.data ||
-            data?.airport?.pluginData?.schedule?.departures?.data ||
-            [];
-        console.log('📊 FlightAPI.io schedule items (raw count):', Array.isArray(scheduleItems) ? scheduleItems.length : 0);
+        // 데이터 위치
+        // data.airport.pluginData.schedule.departures.data
+        // data.airport.pluginData.schedule.departures.page
+        const scheduleData = data?.airport?.pluginData?.schedule?.[mode] || {};
+        let scheduleItems = scheduleData.data || [];
+
+        // 페이지네이션 처리
+        const pageInfo = scheduleData.page || {};
+        const totalPages = pageInfo.total || 1;
+
+        if (totalPages > 1) {
+            console.log(`📚 Total pages found: ${totalPages}. Fetching remaining pages...`);
+            const promises = [];
+            for (let p = 2; p <= totalPages; p++) {
+                const nextUrl = new URL(url.toString());
+                nextUrl.searchParams.set('page', p);
+                promises.push(
+                    fetch(nextUrl.toString())
+                        .then(r => {
+                            if (!r.ok) throw new Error(`Page ${p} HTTP ${r.status}`);
+                            return r.json();
+                        })
+                        .then(d => {
+                            const items = d?.airport?.pluginData?.schedule?.[mode]?.data || [];
+                            console.log(`✅ Page ${p} fetched: ${items.length} items`);
+                            return items;
+                        })
+                        .catch(e => {
+                            console.error(`❌ Failed to fetch page ${p}:`, e);
+                            return [];
+                        })
+                );
+            }
+
+            const results = await Promise.all(promises);
+            results.forEach(items => {
+                scheduleItems = scheduleItems.concat(items);
+            });
+        }
+
+        console.log('📊 FlightAPI.io schedule items (Total):', Array.isArray(scheduleItems) ? scheduleItems.length : 0);
 
         // 항공편명 리스트 추출 + 조건 필터링
         const filteredFlights = scheduleItems
