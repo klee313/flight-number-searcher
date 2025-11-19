@@ -79,13 +79,19 @@ export function renderFlights(list) {
         area.innerHTML = `<div class="muted">${t('noResults')}</div>`;
         return;
     }
-    list.forEach(fn => {
+    list.forEach(item => {
+        if (!item) return;
+        const isObj = typeof item === 'object';
+        const flightNumber = isObj ? (item.flightNumber || item.number || item.fn || '') : item;
+        const departureTimeText = isObj ? item.departureTimeText : null;
+
         const row = document.createElement('div');
         row.className = 'flight';
         row.innerHTML = `
       <div class="left">
         <span class="badge">${t('flightLabel')}</span>
-        <strong style="letter-spacing:.4px">${fn}</strong>
+        <strong style="letter-spacing:.4px">${flightNumber}</strong>
+        ${departureTimeText ? `<span class="muted" style="margin-left:6px;">(${departureTimeText})</span>` : ''}
       </div>
       <span class="muted">${t('flightNumber')}</span>
     `;

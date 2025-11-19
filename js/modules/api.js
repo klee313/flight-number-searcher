@@ -84,7 +84,7 @@ export async function fetchFlights(p) {
         console.log('📊 FlightAPI.io schedule items (raw count):', Array.isArray(scheduleItems) ? scheduleItems.length : 0);
 
         // 항공편명 리스트 추출 + 조건 필터링
-        const flights = scheduleItems
+        const filteredFlights = scheduleItems
             .map(item => item?.flight)
             .filter(Boolean)
             .filter(f => {
@@ -133,20 +133,64 @@ export async function fetchFlights(p) {
                     }
                 }
                 return true;
-            })
+            });
+
+        const enriched = filteredFlights
             .map(f => {
                 const primary = f.identification?.number?.default;
-                if (primary) return String(primary).toUpperCase();
                 const airlineCode = (f.airline?.code?.iata || f.owner?.code?.iata || '').toUpperCase();
-                const altNum = f.identification?.number?.alternative;
-                if (airlineCode && altNum) return airlineCode + String(altNum);
-                return null;
+                if (!primary && !airlineCode) return null;
+
+                const ts =
+                    f.time?.scheduled?.departure ??
+                    f.time?.estimated?.departure ??
+                    f.time?.real?.departure ??
+                    null;
+
+                let departureTimeText = null;
+                let departureTimeLocalISO = null;
+                if (ts) {
+                    // 출발 공항 타임존(offset 초)을 사용해 로컬 출발 시각 계산
+                    const offsetSec = f.airport?.origin?.timezone?.offset;
+                    const offsetMs = typeof offsetSec === 'number' ? offsetSec * 1000 : 0;
+                    const originDate = new Date(ts * 1000 + offsetMs);
+                    const h = String(originDate.getUTCHours()).padStart(2, '0');
+                    const m = String(originDate.getUTCMinutes()).padStart(2, '0');
+                    departureTimeText = `${h}:${m}`;
+                    departureTimeLocalISO = originDate.toISOString();
+                }
+
+                const flightNumber = String(
+                    primary ||
+                    (airlineCode && f.identification?.number?.alternative
+                        ? airlineCode + String(f.identification.number.alternative)
+                        : primary || '')
+                ).toUpperCase();
+
+                if (!flightNumber) return null;
+
+                return {
+                    flightNumber,
+                    airline: airlineCode || null,
+                    origin: origin || null,
+                    destination: (f.airport?.destination?.code?.iata || '').toUpperCase() || null,
+                    departureEpoch: ts,
+                    departureTimeLocalISO,
+                    departureTimeText,
+                };
             })
             .filter(Boolean);
 
-        console.log('✈️ Parsed Flight Numbers (FlightAPI.io):', flights);
-        const uniqueFlights = Array.from(new Set(flights)).sort();
-        console.log('📋 Final Flight List (FlightAPI.io):', uniqueFlights);
+        // flightNumber + 출발시각 기준으로 중복 제거
+        const seen = new Set();
+        const uniqueFlights = enriched.filter(item => {
+            const key = `${item.flightNumber}|${item.departureTimeText || ''}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        console.log('✈️ Parsed Flights with time (FlightAPI.io):', uniqueFlights);
         return uniqueFlights;
     }
     if (PROVIDER === 'aviationstack') {
