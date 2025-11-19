@@ -106,6 +106,34 @@
     </footer>
   </div>
 
+  <!-- Flight Detail Modal -->
+  <div id="flightModal" class="modal-overlay" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Flight Details</h3>
+        <button id="closeModal" class="icon-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <span class="label">Flight</span>
+          <span class="value" id="modalFlight"></span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Airline</span>
+          <span class="value" id="modalAirline"></span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Route</span>
+          <span class="value" id="modalRoute"></span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Departure</span>
+          <span class="value" id="modalTime"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/app.js"></script>
 </body>
 

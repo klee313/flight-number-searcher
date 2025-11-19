@@ -143,8 +143,6 @@ $('#searchBtn').addEventListener('click', () => {
     next.searchParams.set('airline', airline);
     next.searchParams.set('origin', origin);
     next.searchParams.set('destination', destination);
-    // 레거시 route 파라미터도 유지
-    next.searchParams.set('route', `${origin}-${destination}`);
     history.replaceState(null, '', next.toString());
 
     doSearch({ date, airline, origin, destination });

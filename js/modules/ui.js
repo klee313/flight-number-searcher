@@ -93,8 +93,8 @@ export function renderFlights(list) {
         <strong style="letter-spacing:.4px">${flightNumber}</strong>
         ${departureTimeText ? `<span class="muted" style="margin-left:6px;">(${departureTimeText})</span>` : ''}
       </div>
-      <span class="muted">${t('flightNumber')}</span>
     `;
+        row.addEventListener('click', () => showFlightDetail(item));
         area.appendChild(row);
     });
 }
@@ -127,4 +127,49 @@ export function setKeyStatus(exists) {
         $('#apiKeyInputArea').style.display = 'block';
         $('#apiKeySavedArea').style.display = 'none';
     }
+}
+
+// Modal Logic
+const modal = $('#flightModal');
+const closeModalBtn = $('#closeModal');
+
+if (modal) {
+    closeModalBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        setTimeout(() => modal.hidden = true, 200);
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            setTimeout(() => modal.hidden = true, 200);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            modal.classList.remove('show');
+            setTimeout(() => modal.hidden = true, 200);
+        }
+    });
+}
+
+function showFlightDetail(flightData) {
+    if (!modal) return;
+
+    const isObj = typeof flightData === 'object';
+    const flightNumber = isObj ? (flightData.flightNumber || flightData.number || flightData.fn || '') : flightData;
+    const airline = isObj ? (flightData.airline || '-') : '-';
+    const origin = isObj ? (flightData.origin || '-') : '-';
+    const destination = isObj ? (flightData.destination || '-') : '-';
+    const departureTime = isObj ? (flightData.departureTimeText || '-') : '-';
+
+    $('#modalFlight').textContent = flightNumber;
+    $('#modalAirline').textContent = airline;
+    $('#modalRoute').textContent = `${origin} → ${destination}`;
+    $('#modalTime').textContent = departureTime;
+
+    modal.hidden = false;
+    // Small delay to allow display:block to apply before opacity transition
+    setTimeout(() => modal.classList.add('show'), 10);
 }
