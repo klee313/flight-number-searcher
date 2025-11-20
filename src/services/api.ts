@@ -1,9 +1,10 @@
-import { sleep } from './utils.js';
+import { sleep } from '../utils/utils.js';
+import type { FlightSearchParams, FlightResult, Provider } from '../types';
 
 // 제공자 선택: 'flightapi' | 'aviationstack' | 'airlabs' | 'custom' | 'demo'
-export let PROVIDER = 'flightapi';
+export let PROVIDER: Provider = 'flightapi';
 
-export function setProvider(p) {
+export function setProvider(p: Provider): void {
     PROVIDER = p;
 }
 
@@ -12,8 +13,8 @@ export function setProvider(p) {
  * @param {{date:string, airline:string, origin:string, destination:string, apiKey?:string}} p
  * @returns {Promise<string[]>} ex) ["KE701","KE703"]
  */
-export async function fetchFlights(p) {
-    const { date, airline, origin, destination, apiKey } = p;
+export async function fetchFlights(p: FlightSearchParams): Promise<FlightResult[]> {
+    const { date, airline, origin, destination } = p;
 
     // 1. 캐시 키 생성
     const cacheKey = `flight_cache_${PROVIDER}_${date}_${airline}_${origin}_${destination}`;
@@ -56,7 +57,7 @@ export async function fetchFlights(p) {
 }
 
 // 기존 fetchFlights 로직을 이 함수로 이동
-async function fetchFlightsFromProvider(p) {
+async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<FlightResult[]> {
     const { date, airline, origin, destination, apiKey } = p;
 
     if (PROVIDER === 'demo') {
@@ -96,12 +97,12 @@ async function fetchFlightsFromProvider(p) {
             ],
         };
         const key = `${airline}:${origin}-${destination}`;
-        const base = demoMap[key] || [{ fn: 'XX100', time: '10:00' }, { fn: 'XX102', time: '14:00' }];
+        const base = (demoMap as Record<string, Array<{ fn: string; time: string }>>)[key] || [{ fn: 'XX100', time: '10:00' }, { fn: 'XX102', time: '14:00' }];
         // 날짜에 따라 약간 다르게
         const salt = Number(date.replaceAll('-', '')) % 2;
         const list = salt ? base : base.slice(0, Math.max(1, base.length - 1));
 
-        const result = list.map(item => ({
+        const result = list.map((item: { fn: string; time: string }) => ({
             flightNumber: item.fn,
             airline: airline || 'XX',
             origin: origin || 'ORG',
@@ -167,7 +168,7 @@ async function fetchFlightsFromProvider(p) {
             const promises = [];
             for (let p = 2; p <= totalPages; p++) {
                 const nextUrl = new URL(url.toString());
-                nextUrl.searchParams.set('page', p);
+                nextUrl.searchParams.set('page', String(p));
                 promises.push(
                     fetch(nextUrl.toString())
                         .then(r => {
@@ -196,9 +197,9 @@ async function fetchFlightsFromProvider(p) {
 
         // 항공편명 리스트 추출 + 조건 필터링
         const filteredFlights = scheduleItems
-            .map(item => item?.flight)
+            .map((item: any) => item?.flight)
             .filter(Boolean)
-            .filter(f => {
+            .filter((f: any) => {
                 // 항공사 필터
                 if (airline) {
                     const code = f.airline?.code?.iata || f.owner?.code?.iata;
@@ -247,7 +248,7 @@ async function fetchFlightsFromProvider(p) {
             });
 
         const enriched = filteredFlights
-            .map(f => {
+            .map((f: any) => {
                 const primary = f.identification?.number?.default;
                 const airlineCode = (f.airline?.code?.iata || f.owner?.code?.iata || '').toUpperCase();
                 if (!primary && !airlineCode) return null;
@@ -294,7 +295,7 @@ async function fetchFlightsFromProvider(p) {
 
         // flightNumber + 출발시각 기준으로 중복 제거
         const seen = new Set();
-        const uniqueFlights = enriched.filter(item => {
+        const uniqueFlights = enriched.filter((item: FlightResult) => {
             const key = `${item.flightNumber}|${item.departureTimeText || ''}`;
             if (seen.has(key)) return false;
             seen.add(key);
@@ -337,12 +338,12 @@ async function fetchFlightsFromProvider(p) {
         }
         // Aviationstack response structure: { data: [ { flight: { iata, number }, ... } ] }
         const flights = (data?.data || [])
-            .map(item => item?.flight?.iata || (item?.airline?.iata && item?.flight?.number ? `${item.airline.iata}${item.flight.number}` : null))
-            .filter(Boolean);
+            .map((item: any) => item?.flight?.iata || (item?.airline?.iata && item?.flight?.number ? `${item.airline.iata}${item.flight.number}` : null))
+            .filter(Boolean) as string[];
         console.log('✈️ Parsed Flight Numbers:', flights);
         const uniqueFlights = Array.from(new Set(flights)).sort();
         console.log('📋 Final Flight List:', uniqueFlights);
-        return uniqueFlights;
+        return uniqueFlights.map(fn => ({ flightNumber: fn, airline: null, origin: null, destination: null }));
     }
     if (PROVIDER === 'airlabs') {
         if (!apiKey) throw new Error('API 키가 필요합니다.');
@@ -365,13 +366,13 @@ async function fetchFlightsFromProvider(p) {
         console.log('✅ Airlabs API Response:', data);
         // 방어적 파싱 - Airlabs API response structure
         const flights = (data?.response || [])
-            .map(item => item?.flight_iata || item?.flight_number || null)
-            .filter(Boolean);
+            .map((item: any) => item?.flight_iata || item?.flight_number || null)
+            .filter(Boolean) as string[];
         console.log('✈️ Parsed Flight Numbers:', flights);
         // 중복 제거 + 정렬
         const uniqueFlights = Array.from(new Set(flights)).sort();
         console.log('📋 Final Flight List:', uniqueFlights);
-        return uniqueFlights;
+        return uniqueFlights.map(fn => ({ flightNumber: fn, airline: null, origin: null, destination: null }));
     }
     if (PROVIDER === 'custom') {
         // 사내/다른 API에 맞게 수정

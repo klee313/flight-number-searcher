@@ -21,6 +21,7 @@ export const i18n = {
         destinationPlaceholder: 'e.g., Tokyo, NRT, Bangkok',
         searchBtn: 'Search',
         demoBtn: 'View with DEMO Data',
+        resetBtn: 'Reset',
 
         searching: 'Searching...',
         noResults: 'No flight numbers found for this criteria.',
@@ -33,6 +34,9 @@ export const i18n = {
         routePrefix: 'Route',
         providerPrefix: 'Provider',
         languageLabel: 'Language',
+        settingsTitle: 'Settings',
+        flightDetailsTitle: 'Flight Details',
+        departureLabel: 'Departure',
         footerText: 'Provider: FlightAPI.io Schedule API.',
         alertNoKey: 'Please enter an API key.',
         alertSelectAll: 'Please select date, airline, origin, and destination.',
@@ -59,6 +63,7 @@ export const i18n = {
         destinationPlaceholder: '예: 도쿄, NRT, Bangkok, 방콕',
         searchBtn: '조회',
         demoBtn: 'DEMO 데이터로 보기',
+        resetBtn: '초기화',
 
         searching: '조회 중…',
         noResults: '조건에 해당하는 항공편명이 없습니다.',
@@ -69,8 +74,11 @@ export const i18n = {
         datePrefix: '날짜',
         airlinePrefix: '항공사',
         routePrefix: '노선',
-        providerPrefix: 'Provider',
+        providerPrefix: '제공자',
         languageLabel: '언어',
+        settingsTitle: '설정',
+        flightDetailsTitle: '항공편 상세 정보',
+        departureLabel: '출발 시간',
         footerText: '제공자: FlightAPI.io 스케줄 API.',
         alertNoKey: 'API 키를 입력하세요.',
         alertSelectAll: '날짜, 항공사, 출발지, 도착지를 모두 선택해주세요.',
@@ -97,6 +105,7 @@ export const i18n = {
         destinationPlaceholder: 'Örn: Antalya, AYT, Izmir, ADB',
         searchBtn: 'Ara',
         demoBtn: 'DEMO Verileriyle Görüntüle',
+        resetBtn: 'Sıfırla',
 
         searching: 'Aranıyor...',
         noResults: 'Bu kriterlere uygun uçuş numarası bulunamadı.',
@@ -109,8 +118,25 @@ export const i18n = {
         routePrefix: 'Rota',
         providerPrefix: 'Sağlayıcı',
         languageLabel: 'Dil',
+        settingsTitle: 'Ayarlar',
+        flightDetailsTitle: 'Uçuş Detayları',
+        departureLabel: 'Kalkış',
         footerText: 'Sağlayıcı: FlightAPI.io Schedule API.',
         alertNoKey: 'Lütfen bir API anahtarı girin.',
         alertSelectAll: 'Lütfen tarih, havayolu, kalkış ve varış noktalarını seçin.',
     }
 };
+
+export let currentLang: keyof typeof i18n = 'en';
+
+export function setLanguage(lang: string): void {
+    if (lang in i18n) {
+        currentLang = lang as keyof typeof i18n;
+    }
+}
+
+export function t(key: string): string {
+    const translations = i18n[currentLang] as Record<string, string>;
+    const enTranslations = i18n.en as Record<string, string>;
+    return translations?.[key] || enTranslations[key] || key;
+}
