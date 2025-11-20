@@ -21,7 +21,7 @@ export const i18n = {
         destinationPlaceholder: 'e.g., Tokyo, NRT, Bangkok',
         searchBtn: 'Search',
         demoBtn: 'View with DEMO Data',
-        inputHint: 'Select date/airline/origin/destination and search.',
+
         searching: 'Searching...',
         noResults: 'No flight numbers found for this criteria.',
         waitingForInput: 'Please select criteria above and click "Search".',
@@ -59,7 +59,7 @@ export const i18n = {
         destinationPlaceholder: '예: 도쿄, NRT, Bangkok, 방콕',
         searchBtn: '조회',
         demoBtn: 'DEMO 데이터로 보기',
-        inputHint: '날짜/항공사/출발지/도착지를 선택하고 조회하세요.',
+
         searching: '조회 중…',
         noResults: '조건에 해당하는 항공편명이 없습니다.',
         waitingForInput: '상단 입력 섹션에서 조건을 선택하고 "조회"를 눌러주세요.',
@@ -97,7 +97,7 @@ export const i18n = {
         destinationPlaceholder: 'Örn: Antalya, AYT, Izmir, ADB',
         searchBtn: 'Ara',
         demoBtn: 'DEMO Verileriyle Görüntüle',
-        inputHint: 'Tarih/havayolu/kalkış/varış seçin ve arayın.',
+
         searching: 'Aranıyor...',
         noResults: 'Bu kriterlere uygun uçuş numarası bulunamadı.',
         waitingForInput: 'Lütfen yukarıdaki kriterleri seçin ve "Ara"ya tıklayın.',
