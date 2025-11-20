@@ -176,5 +176,35 @@ $('#swapBtn').addEventListener('click', () => {
     destinationField.setCode(origin);
 });
 
+// Settings Modal Logic
+const settingsModal = $('#settingsModal');
+const settingsBtn = $('#settingsBtn');
+const closeSettingsBtn = $('#closeSettings');
+
+function toggleSettings(show) {
+    if (show) {
+        settingsModal.hidden = false;
+        // Small delay to allow display:block to apply before opacity transition
+        requestAnimationFrame(() => {
+            settingsModal.classList.add('show');
+        });
+    } else {
+        settingsModal.classList.remove('show');
+        setTimeout(() => {
+            settingsModal.hidden = true;
+        }, 200); // Match transition duration
+    }
+}
+
+settingsBtn.addEventListener('click', () => toggleSettings(true));
+closeSettingsBtn.addEventListener('click', () => toggleSettings(false));
+
+// Close on click outside
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        toggleSettings(false);
+    }
+});
+
 // 초기 실행
 main();

@@ -29,10 +29,12 @@ export function updateUILanguage() {
     $('label[for="apiKey"]').textContent = t('apiKeyLabel');
     $('#apiKey').placeholder = t('apiKeyPlaceholder');
     $('#saveKey').textContent = t('saveBtn');
-    $('#editKey').textContent = t('editBtn');
+    $('#saveKey').textContent = t('saveBtn');
+    // $('#editKey').textContent = t('editBtn'); // Removed
     $('#clearKey').textContent = t('clearBtn');
     $('#apiKeyInputArea .help').innerHTML = t('apiKeyHelp');
     $('#apiKeySavedArea .help').innerHTML = t('apiKeySavedHelp');
+    $('#settingsTitle').textContent = t('settingsTitle') || 'Settings';
     $('label[for="dateInput"]').textContent = t('dateLabel');
     $('label[for="airlineInput"]').textContent = t('airlineLabel');
     $('label[for="originInput"]').textContent = t('originLabel');
@@ -148,6 +150,37 @@ export function setKeyStatus(exists) {
         $('#apiKeyInputArea').style.display = 'block';
         $('#apiKeySavedArea').style.display = 'none';
     }
+}
+
+export function initSettingsModal() {
+    const modal = $('#settingsModal');
+    const openBtn = $('#settingsBtn');
+    const closeBtn = $('#closeSettings');
+
+    if (!modal || !openBtn || !closeBtn) return;
+
+    const open = () => {
+        modal.hidden = false;
+        setTimeout(() => modal.classList.add('show'), 10);
+    };
+
+    const close = () => {
+        modal.classList.remove('show');
+        setTimeout(() => modal.hidden = true, 200);
+    };
+
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            close();
+        }
+    });
 }
 
 // Modal Logic
