@@ -9,7 +9,8 @@ import {
     renderFlights,
     showInputSection,
     currentLang,
-    STORAGE_KEY
+    STORAGE_KEY,
+    initSettingsModal
 } from './modules/ui.js';
 import {
     fetchFlights,
@@ -125,14 +126,6 @@ $('#saveKey').addEventListener('click', () => {
     setKeyStatus(true);
 });
 
-$('#editKey').addEventListener('click', () => {
-    $('#apiKeyInputArea').style.display = 'block';
-    $('#apiKeySavedArea').style.display = 'none';
-    const storedKey = localStorage.getItem(STORAGE_KEY) || '';
-    $('#apiKey').value = storedKey;
-    $('#apiKey').focus();
-});
-
 $('#clearKey').addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
     $('#apiKey').value = '';
@@ -176,35 +169,8 @@ $('#swapBtn').addEventListener('click', () => {
     destinationField.setCode(origin);
 });
 
-// Settings Modal Logic
-const settingsModal = $('#settingsModal');
-const settingsBtn = $('#settingsBtn');
-const closeSettingsBtn = $('#closeSettings');
-
-function toggleSettings(show) {
-    if (show) {
-        settingsModal.hidden = false;
-        // Small delay to allow display:block to apply before opacity transition
-        requestAnimationFrame(() => {
-            settingsModal.classList.add('show');
-        });
-    } else {
-        settingsModal.classList.remove('show');
-        setTimeout(() => {
-            settingsModal.hidden = true;
-        }, 200); // Match transition duration
-    }
-}
-
-settingsBtn.addEventListener('click', () => toggleSettings(true));
-closeSettingsBtn.addEventListener('click', () => toggleSettings(false));
-
-// Close on click outside
-settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-        toggleSettings(false);
-    }
-});
+// Initialize Settings Modal
+initSettingsModal();
 
 // 초기 실행
 main();
