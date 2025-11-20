@@ -33,9 +33,6 @@ export default function SearchForm() {
     const { apiKey } = useSettingsStore();
     const { searchFlights } = useSearchStore();
 
-    console.log('Current Language:', i18n.language);
-    console.log('Locale Object:', i18n.language.startsWith('ko') ? 'Korean Object' : 'Undefined/Other');
-
     const form = useForm<SearchSchema>({
         resolver: zodResolver(searchSchema),
         defaultValues: {
@@ -54,9 +51,9 @@ export default function SearchForm() {
         const urlDestination = qs.get('destination');
 
         if (urlDate) form.setValue('date', urlDate);
-        if (urlAirline) form.setValue('airline', urlAirline);
-        if (urlOrigin) form.setValue('origin', urlOrigin);
-        if (urlDestination) form.setValue('destination', urlDestination);
+        if (urlAirline) form.setValue('airline', urlAirline.toUpperCase());
+        if (urlOrigin) form.setValue('origin', urlOrigin.toUpperCase());
+        if (urlDestination) form.setValue('destination', urlDestination.toUpperCase());
     }, [form]);
 
     function onSubmit(data: SearchSchema) {
