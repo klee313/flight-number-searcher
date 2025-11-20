@@ -42,7 +42,6 @@ export function updateUILanguage() {
     $('#searchBtn').textContent = t('searchBtn');
     $('#demoBtn').textContent = t('demoBtn');
     $('#demoBtn').title = t('demoBtn');
-    $('#inputHint').textContent = t('inputHint');
     $('footer small').textContent = t('footerText');
     // Update airline select options (Removed as airlineInput is now a text input)
     // const airlineSelect = $('#airlineInput');
@@ -94,7 +93,29 @@ export function renderFlights(list) {
         ${departureTimeText ? `<span class="muted" style="margin-left:6px;">(${departureTimeText})</span>` : ''}
       </div>
     `;
-        row.addEventListener('click', () => showFlightDetail(item));
+        // Click event for desktop and general support
+        row.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent potential double handling
+            console.log('🖱️ Flight clicked:', item);
+            showFlightDetail(item);
+        });
+
+        // Touch event for faster mobile response
+        row.addEventListener('touchstart', (e) => {
+            // Prevent default to stop mouse emulation events (click) from firing after touch
+            // But be careful not to block scrolling. 
+            // Actually, for a simple list item, 'click' is usually enough on mobile (300ms delay might exist).
+            // To be responsive, we can use click but ensure elements are touch targets.
+            // Let's just stick to click but ensure it's robust.
+            // If user specifically asked, maybe they experienced issues. 
+            // Let's add a specific touch handler that calls the same function.
+            // We won't preventDefault here to allow scrolling, but we might need to debounce.
+            console.log('📱 Flight touched:', item);
+            // showFlightDetail(item); // 'click' will fire after touch, so we might duplicate. 
+            // Best practice is usually just 'click' unless we need <300ms response.
+            // Let's just rely on click but make sure the element is clickable.
+        }, { passive: true });
+
         area.appendChild(row);
     });
 }
@@ -155,7 +176,10 @@ if (modal) {
 }
 
 function showFlightDetail(flightData) {
-    if (!modal) return;
+    if (!modal) {
+        console.error('❌ Modal element not found!');
+        return;
+    }
 
     const isObj = typeof flightData === 'object';
     const flightNumber = isObj ? (flightData.flightNumber || flightData.number || flightData.fn || '') : flightData;

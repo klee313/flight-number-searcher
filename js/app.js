@@ -169,5 +169,12 @@ $('#demoBtn').addEventListener('click', () => {
     doSearch({ date, airline, origin, destination, forceDemo: true });
 });
 
+$('#swapBtn').addEventListener('click', () => {
+    const origin = originField.getCode();
+    const destination = destinationField.getCode();
+    originField.setCode(destination);
+    destinationField.setCode(origin);
+});
+
 // 초기 실행
 main();

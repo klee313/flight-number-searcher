@@ -63,18 +63,28 @@
             <div id="airlineList" class="autocomplete-list"></div>
           </div>
         </div>
-        <div class="col-6">
-          <label for="originInput">Origin (City or Airport Code)</label>
-          <div class="autocomplete-wrapper">
-            <input id="originInput" type="text" placeholder="e.g., Incheon, ICN, Tokyo, Narita" autocomplete="off" />
-            <div id="originList" class="autocomplete-list"></div>
-          </div>
-        </div>
-        <div class="col-6">
-          <label for="destinationInput">Destination (City or Airport Code)</label>
-          <div class="autocomplete-wrapper">
-            <input id="destinationInput" type="text" placeholder="e.g., Tokyo, NRT, Bangkok" autocomplete="off" />
-            <div id="destinationList" class="autocomplete-list"></div>
+        <div class="col-12">
+          <div class="row align-center" style="gap: 10px;">
+            <div style="flex: 1;">
+              <label for="originInput">Origin (City or Airport Code)</label>
+              <div class="autocomplete-wrapper">
+                <input id="originInput" type="text" placeholder="e.g., Incheon, ICN" autocomplete="off" />
+                <div id="originList" class="autocomplete-list"></div>
+              </div>
+            </div>
+            <div style="padding-top: 24px;">
+              <button id="swapBtn" class="icon-btn" title="Swap Origin and Destination"
+                style="background:var(--surface); border:1px solid var(--border); width:36px; height:36px; border-radius:50%;">
+                ⇄
+              </button>
+            </div>
+            <div style="flex: 1;">
+              <label for="destinationInput">Destination (City or Airport Code)</label>
+              <div class="autocomplete-wrapper">
+                <input id="destinationInput" type="text" placeholder="e.g., Tokyo, NRT" autocomplete="off" />
+                <div id="destinationList" class="autocomplete-list"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="col-12 row">

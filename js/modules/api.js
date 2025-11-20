@@ -14,6 +14,51 @@ export function setProvider(p) {
  */
 export async function fetchFlights(p) {
     const { date, airline, origin, destination, apiKey } = p;
+
+    // 1. 캐시 키 생성
+    const cacheKey = `flight_cache_${PROVIDER}_${date}_${airline}_${origin}_${destination}`;
+
+    // 2. 캐시 확인
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            const { timestamp, data } = JSON.parse(cached);
+            // 1시간(3600000ms) 유효기간
+            if (Date.now() - timestamp < 3600 * 1000) {
+                console.log('📦 Using cached data for:', cacheKey);
+                return data;
+            } else {
+                console.log('⌛ Cache expired for:', cacheKey);
+                localStorage.removeItem(cacheKey);
+            }
+        }
+    } catch (e) {
+        console.warn('Cache read error:', e);
+    }
+
+    // 3. 실제 데이터 요청 (내부 함수로 분리하거나 기존 로직 실행)
+    const result = await fetchFlightsFromProvider(p);
+
+    // 4. 캐시 저장
+    if (result && result.length > 0) {
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+                timestamp: Date.now(),
+                data: result
+            }));
+            console.log('💾 Data cached:', cacheKey);
+        } catch (e) {
+            console.warn('Cache write error (quota exceeded?):', e);
+        }
+    }
+
+    return result;
+}
+
+// 기존 fetchFlights 로직을 이 함수로 이동
+async function fetchFlightsFromProvider(p) {
+    const { date, airline, origin, destination, apiKey } = p;
+
     if (PROVIDER === 'demo') {
         // --- DEMO 모드: 실제 호출 없이 예시 데이터 반환 ---
         console.log('🎭 DEMO Mode: Using sample data');
