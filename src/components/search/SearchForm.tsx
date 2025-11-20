@@ -1,230 +1,267 @@
-import { useState, useEffect } from 'react';
-import Autocomplete from './Autocomplete';
-import { t } from '../../data/locales';
-import { ArrowRightLeft } from 'lucide-react';
-import { useSettingsStore } from '../../stores/useSettingsStore';
-import { useSearchStore } from '../../stores/useSearchStore';
-import { qs } from '../../utils/utils';
-import { AIRLINES } from '../../data/airlines';
-import { AIRPORTS } from '../../data/airports';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
+import { CalendarIcon, ArrowRightLeft, Search, RotateCcw, Play } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ko, tr } from 'date-fns/locale';
 
-// Helper function to get local date in YYYY-MM-DD format
-const getLocalDateString = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-// Constants
-const INPUT_WIDTH = '80px';
-const INPUT_GAP = '12px';
-
-// Shared styles
-const detailTextStyle = {
-    flex: 1,
-    fontSize: '13px',
-    color: 'var(--muted)',
-    fontWeight: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const
-};
-
-// Helper component for displaying detail text next to input
-interface DetailDisplayProps {
-    code: string;
-    type: 'airline' | 'airport';
-    alignBottom?: boolean;
-}
-
-function DetailDisplay({ code, type, alignBottom = false }: DetailDisplayProps) {
-    if (!code) return null;
-
-    const upperCode = code.toUpperCase();
-    let displayText = '';
-
-    if (type === 'airline') {
-        const airline = AIRLINES.find(a => a.code === upperCode);
-        displayText = airline?.name || '';
-    } else {
-        const airport = AIRPORTS.find(a => a.code === upperCode);
-        displayText = airport ? `${airport.cityEn} (${airport.city})` : '';
-    }
-
-    if (!displayText) return null;
-
-    return (
-        <div style={{
-            ...detailTextStyle,
-            paddingBottom: alignBottom ? '12px' : '0'
-        }}>
-            {displayText}
-        </div>
-    );
-}
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { FlightCombobox } from './FlightCombobox';
+import { searchSchema, type SearchSchema } from '@/schemas/searchSchema';
+import { useSearchStore } from '@/stores/useSearchStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { qs } from '@/utils/utils';
 
 export default function SearchForm() {
+    const { t, i18n } = useTranslation();
     const { apiKey } = useSettingsStore();
     const { searchFlights } = useSearchStore();
-    const [date, setDate] = useState(getLocalDateString());
-    const [airline, setAirline] = useState('');
-    const [origin, setOrigin] = useState('');
-    const [destination, setDestination] = useState('');
 
-    // Initialize form fields from URL query parameters
+    console.log('Current Language:', i18n.language);
+    console.log('Locale Object:', i18n.language.startsWith('ko') ? 'Korean Object' : 'Undefined/Other');
+
+    const form = useForm<SearchSchema>({
+        resolver: zodResolver(searchSchema),
+        defaultValues: {
+            date: format(new Date(), 'yyyy-MM-dd'),
+            airline: '',
+            origin: '',
+            destination: '',
+        },
+    });
+
+    // Initialize from URL
     useEffect(() => {
         const urlDate = qs.get('date');
         const urlAirline = qs.get('airline');
         const urlOrigin = qs.get('origin');
         const urlDestination = qs.get('destination');
 
-        if (urlDate) setDate(urlDate);
-        if (urlAirline) setAirline(urlAirline);
-        if (urlOrigin) setOrigin(urlOrigin);
-        if (urlDestination) setDestination(urlDestination);
-    }, []);
+        if (urlDate) form.setValue('date', urlDate);
+        if (urlAirline) form.setValue('airline', urlAirline);
+        if (urlOrigin) form.setValue('origin', urlOrigin);
+        if (urlDestination) form.setValue('destination', urlDestination);
+    }, [form]);
+
+    function onSubmit(data: SearchSchema) {
+        searchFlights(data, apiKey);
+    }
 
     const handleSwap = () => {
-        const temp = origin;
-        setOrigin(destination);
-        setDestination(temp);
-    };
-
-    const handleSearch = () => {
-        if (!date || !airline || !origin || !destination) {
-            alert(t('alertSelectAll'));
-            return;
-        }
-        searchFlights({ date, airline, origin, destination }, apiKey);
+        const currentOrigin = form.getValues('origin');
+        const currentDest = form.getValues('destination');
+        form.setValue('origin', currentDest);
+        form.setValue('destination', currentOrigin);
     };
 
     const handleDemo = () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = format(new Date(), 'yyyy-MM-dd');
+        form.setValue('date', today);
+        form.setValue('airline', 'KE');
+        form.setValue('origin', 'ICN');
+        form.setValue('destination', 'NRT');
+
+        // Trigger search manually or let user click search? 
+        // Original behavior triggered search.
         searchFlights({
-            date: date || today,
-            airline: airline || 'KE',
-            origin: origin || 'ICN',
-            destination: destination || 'NRT'
+            date: today,
+            airline: 'KE',
+            origin: 'ICN',
+            destination: 'NRT'
         }, apiKey, true);
     };
 
     const handleReset = () => {
-        setDate(getLocalDateString());
-        setAirline('');
-        setOrigin('');
-        setDestination('');
+        form.reset({
+            date: format(new Date(), 'yyyy-MM-dd'),
+            airline: '',
+            origin: '',
+            destination: '',
+        });
         window.history.replaceState(null, '', window.location.pathname);
     };
 
     return (
-        <section className="panel">
-            <div className="grid">
-                {/* First Row: Date, Spacer, Airline */}
-                <div className="col-12">
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        {/* Date Input */}
-                        <div style={{ flex: 1 }}>
-                            <label>{t('dateLabel')}</label>
-                            <input
-                                type="date"
-                                value={date}
-                                min={getLocalDateString()}
-                                onChange={(e) => setDate(e.target.value)}
-                            />
-                        </div>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-6 bg-card rounded-xl border shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
 
-                        {/* Spacer to align with swap button */}
-                        <div style={{ width: '36px', paddingTop: '32px' }}></div>
-
-                        {/* Airline Input */}
-                        <div style={{ flex: 1 }}>
-                            <label>{t('airlineLabel')}</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: INPUT_GAP }}>
-                                <div style={{ width: INPUT_WIDTH }}>
-                                    <Autocomplete
-                                        value={airline}
-                                        onChange={setAirline}
-                                        type="airline"
-                                        placeholder="KE"
-                                    />
-                                </div>
-                                <DetailDisplay code={airline} type="airline" />
-                            </div>
-                        </div>
+                    {/* Date */}
+                    <div className="md:col-span-3">
+                        <FormField
+                            control={form.control}
+                            name="date"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col relative pb-6">
+                                    <FormLabel>{t('dateLabel')}</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "w-full pl-3 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value ? (
+                                                        format(new Date(field.value), "PPP", {
+                                                            locale: i18n.language.startsWith('ko') ? ko : i18n.language.startsWith('tr') ? tr : undefined
+                                                        })
+                                                    ) : (
+                                                        <span>Pick a date</span>
+                                                    )}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value ? new Date(field.value) : undefined}
+                                                onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                                                disabled={(date) => {
+                                                    // Disable dates before today (allow today)
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0);
+                                                    return date < today;
+                                                }}
+                                                initialFocus
+                                                locale={i18n.language.startsWith('ko') ? ko : i18n.language.startsWith('tr') ? tr : undefined}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage className="absolute bottom-0 left-0 text-xs" />
+                                </FormItem>
+                            )}
+                        />
                     </div>
-                </div>
 
-                {/* Origin and Destination */}
-                <div className="col-12">
-                    <div className="row align-center" style={{ gap: '10px' }}>
-                        {/* Origin */}
-                        <div style={{ flex: 1 }}>
-                            <label>{t('originLabel')}</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: INPUT_GAP }}>
-                                <div style={{ width: INPUT_WIDTH }}>
-                                    <Autocomplete
-                                        value={origin}
-                                        onChange={setOrigin}
-                                        type="airport"
-                                        placeholder="ICN"
-                                    />
-                                </div>
-                                <DetailDisplay code={origin} type="airport" />
-                            </div>
-                        </div>
+                    {/* Airline */}
+                    <div className="md:col-span-3">
+                        <FormField
+                            control={form.control}
+                            name="airline"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col relative pb-6">
+                                    <FormLabel>{t('airlineLabel')}</FormLabel>
+                                    <FormControl>
+                                        <FlightCombobox
+                                            type="airline"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            placeholder={t('airlineSelect')}
+                                        />
+                                    </FormControl>
+                                    <FormMessage className="absolute bottom-0 left-0 text-xs" />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
-                        {/* Swap Button */}
-                        <div style={{ paddingTop: '24px' }}>
-                            <button
-                                className="icon-btn"
-                                title="Swap Origin and Destination"
+                    {/* Origin */}
+                    <div className="md:col-span-3 relative">
+                        <FormField
+                            control={form.control}
+                            name="origin"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col relative pb-6">
+                                    <FormLabel>{t('originLabel')}</FormLabel>
+                                    <FormControl>
+                                        <FlightCombobox
+                                            type="airport"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            placeholder="ICN"
+                                        />
+                                    </FormControl>
+                                    <FormMessage className="absolute bottom-0 left-0 text-xs" />
+                                </FormItem>
+                            )}
+                        />
+                        {/* Swap Button - Absolute positioned on desktop, relative on mobile */}
+                        <div className="hidden md:flex absolute -right-6 top-8 z-10">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full border bg-background hover:bg-accent"
                                 onClick={handleSwap}
-                                style={{
-                                    background: 'var(--surface)',
-                                    border: '1px solid var(--border)',
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
                             >
-                                <ArrowRightLeft size={16} />
-                            </button>
+                                <ArrowRightLeft className="h-4 w-4" />
+                            </Button>
                         </div>
+                    </div>
 
-                        {/* Destination */}
-                        <div style={{ flex: 1 }}>
-                            <label>{t('destinationLabel')}</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: INPUT_GAP }}>
-                                <div style={{ width: INPUT_WIDTH }}>
-                                    <Autocomplete
-                                        value={destination}
-                                        onChange={setDestination}
-                                        type="airport"
-                                        placeholder="NRT"
-                                    />
-                                </div>
-                                <DetailDisplay code={destination} type="airport" />
-                            </div>
-                        </div>
+                    {/* Destination */}
+                    <div className="md:col-span-3">
+                        <FormField
+                            control={form.control}
+                            name="destination"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col relative pb-6">
+                                    <FormLabel>{t('destinationLabel')}</FormLabel>
+                                    <FormControl>
+                                        <FlightCombobox
+                                            type="airport"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            placeholder="NRT"
+                                        />
+                                    </FormControl>
+                                    <FormMessage className="absolute bottom-0 left-0 text-xs" />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="col-12 row">
-                    <button className="btn" onClick={handleSearch}>{t('searchBtn')}</button>
-                    <button className="btn secondary" onClick={handleDemo} title={t('demoBtn')}>
-                        {t('demoBtn')}
-                    </button>
-                    <button className="btn secondary" onClick={handleReset} title={t('resetBtn')}>
-                        {t('resetBtn')}
-                    </button>
+                {/* Mobile Swap Button */}
+                <div className="md:hidden flex justify-center -my-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={handleSwap}
+                    >
+                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                        Swap Origin & Destination
+                    </Button>
                 </div>
-            </div>
-        </section>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                    <Button type="submit" className="flex-1 md:flex-none">
+                        <Search className="mr-2 h-4 w-4" />
+                        {t('searchBtn')}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={handleDemo} title={t('demoBtn')}>
+                        <Play className="mr-2 h-4 w-4" />
+                        {t('demoBtn')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleReset} title={t('resetBtn')}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        {t('resetBtn')}
+                    </Button>
+                </div>
+            </form>
+        </Form>
     );
 }

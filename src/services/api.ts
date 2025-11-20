@@ -57,7 +57,7 @@ export async function fetchFlights(p: FlightSearchParams): Promise<FlightResult[
 }
 
 // 기존 fetchFlights 로직을 이 함수로 이동
-async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<FlightResult[]> {
+export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<FlightResult[]> {
     const { date, airline, origin, destination, apiKey } = p;
 
     if (PROVIDER === 'demo') {

@@ -1,6 +1,9 @@
-import { t } from '../../data/locales';
-import { useSearchStore } from '../../stores/useSearchStore';
-import { useUIStore } from '../../stores/useUIStore';
+import { t } from 'i18next';
+import { useSearchStore } from '@/stores/useSearchStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plane, AlertCircle } from 'lucide-react';
 
 export default function FlightList() {
     const { flights, loading, error } = useSearchStore();
@@ -8,50 +11,66 @@ export default function FlightList() {
 
     if (loading) {
         return (
-            <div className="row">
-                <div className="spinner"></div>
-                <span className="muted">{t('searching')}</span>
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="text-muted-foreground">{t('searching')}</span>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div style={{
-                padding: '16px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: 'var(--error, #ef4444)'
-            }}>
-                <strong>⚠️ Error</strong>
-                <p style={{ marginTop: '8px', marginBottom: 0 }}>{error}</p>
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 mt-0.5" />
+                <div>
+                    <strong className="block font-semibold">Error</strong>
+                    <p className="text-sm mt-1">{error}</p>
+                </div>
             </div>
         );
     }
 
     if (!flights || flights.length === 0) {
-        return <div className="muted">{t('noResults')}</div>;
+        return (
+            <div className="text-center py-12 text-muted-foreground">
+                {t('noResults')}
+            </div>
+        );
     }
 
     return (
-        <div className="list">
+        <div className="space-y-3">
             {flights.map((item, index) => {
                 const flightNumber = item.flightNumber || '';
                 const departureTimeText = item.departureTimeText;
 
                 return (
-                    <div key={index} className="flight" onClick={() => selectFlight(item)}>
-                        <div className="left">
-                            <span className="badge">{t('flightLabel')}</span>
-                            <strong style={{ letterSpacing: '.4px' }}>{flightNumber}</strong>
-                            {departureTimeText && (
-                                <span className="muted" style={{ marginLeft: '6px' }}>
-                                    ({departureTimeText})
-                                </span>
-                            )}
-                        </div>
-                    </div>
+                    <Card
+                        key={index}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors border-l-4 border-l-primary"
+                        onClick={() => selectFlight(item)}
+                    >
+                        <CardContent className="flex items-center p-4">
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="bg-primary/10 p-2 rounded-full">
+                                    <Plane className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="font-normal text-xs text-muted-foreground">
+                                            {t('flightLabel')}
+                                        </Badge>
+                                        <span className="font-bold text-lg tracking-tight">{flightNumber}</span>
+                                    </div>
+                                    {departureTimeText && (
+                                        <span className="text-sm text-muted-foreground mt-1">
+                                            {departureTimeText}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 );
             })}
         </div>
