@@ -37,6 +37,7 @@ export default function SettingsModal() {
                     style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
                 >
                     <option value="airlabs">{t('providerAirlabs')}</option>
+                    <option value="flightapi">{t('providerFlightApi')}</option>
                     <option value="aviationstack">{t('providerAviationstack')}</option>
                 </select>
 

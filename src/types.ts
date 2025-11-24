@@ -17,4 +17,4 @@ export interface FlightResult {
     departureTimeText?: string | null;
 }
 
-export type Provider = 'airlabs' | 'aviationstack' | 'custom' | 'demo';
+export type Provider = 'airlabs' | 'aviationstack' | 'flightapi' | 'custom' | 'demo';

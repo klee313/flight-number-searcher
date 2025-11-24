@@ -43,6 +43,7 @@ export const i18n = {
         settingsDesc: 'Manage your API key and preferences.',
         providerLabel: 'API Provider',
         providerAirlabs: 'AirLabs (Real-time)',
+        providerFlightApi: 'FlightAPI.io',
         providerAviationstack: 'Aviationstack',
     },
     ko: {
@@ -89,6 +90,7 @@ export const i18n = {
         settingsDesc: 'API 키와 환경설정을 관리하세요.',
         providerLabel: 'API 제공자',
         providerAirlabs: 'AirLabs (실시간)',
+        providerFlightApi: 'FlightAPI.io',
         providerAviationstack: 'Aviationstack',
     },
     tr: {
@@ -135,6 +137,7 @@ export const i18n = {
         settingsDesc: 'API anahtarınızı ve tercihlerinizi yönetin.',
         providerLabel: 'API Sağlayıcı',
         providerAirlabs: 'AirLabs (Gerçek zamanlı)',
+        providerFlightApi: 'FlightAPI.io',
         providerAviationstack: 'Aviationstack',
     }
 };

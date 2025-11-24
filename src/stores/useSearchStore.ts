@@ -57,6 +57,13 @@ export const useSearchStore = create<SearchState>((set) => ({
                 setProvider(provider);
             }
 
+            // Save to recent history
+            const { useRecentSearchStore } = await import('./useRecentSearchStore');
+            const { addRecentAirline, addRecentAirport } = useRecentSearchStore.getState();
+            if (airline) addRecentAirline(airline);
+            if (origin) addRecentAirport(origin);
+            if (destination) addRecentAirport(destination);
+
             const results = await fetchFlights({ ...params, apiKey });
             set({ flights: results, error: null });
 

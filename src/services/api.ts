@@ -115,6 +115,68 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
     }
 
 
+    if (PROVIDER === 'flightapi') {
+        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        // FlightAPI.io Schedule API
+        // endpoint: https://api.flightapi.io/schedule/{API_KEY}
+        // params: mode=departures, day=YYYY-MM-DD, iata=ORIGIN_IATA
+
+        const url = new URL(`https://api.flightapi.io/schedule/${apiKey}`);
+        url.searchParams.set('mode', 'departures');
+        if (date) url.searchParams.set('day', date);
+        if (origin) url.searchParams.set('iata', origin);
+
+        console.log('🛫 FlightAPI Request:', url.toString());
+        const res = await fetch(url.toString());
+
+        if (!res.ok) {
+            console.error('❌ API Error:', res.status, res.statusText);
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        console.log('✅ FlightAPI Response:', data);
+
+        // FlightAPI response mapping
+        // Structure: [ { airport: { pluginData: { schedule: { departures: { data: [...] } } } } } ]
+        // or sometimes directly data array depending on endpoint version, but based on previous implementation:
+        // The previous implementation used a specific parsing logic. Let's assume standard structure.
+        // Actually, based on documentation or common usage:
+        // It usually returns a list of flights.
+
+        // Let's try to map safely.
+        const departures = data?.[0]?.airport?.pluginData?.schedule?.departures?.data || [];
+
+        const flights: FlightResult[] = departures
+            .map((item: any) => {
+                // Filter by airline if specified
+                const airlineCode = item.flight?.airline?.iata;
+                if (airline && airlineCode !== airline) return null;
+
+                // Filter by destination if specified
+                const destCode = item.flight?.arrival?.iata;
+                if (destination && destCode !== destination) return null;
+
+                const flightNumber = item.flight?.airline?.iata && item.flight?.number
+                    ? `${item.flight.airline.iata}${item.flight.number}`
+                    : null;
+
+                if (!flightNumber) return null;
+
+                return {
+                    flightNumber: flightNumber,
+                    airline: airlineCode || null,
+                    origin: origin || null, // We queried by origin, so it matches
+                    destination: destCode || null,
+                    departureTimeText: item.flight?.departure?.scheduled?.time || null
+                };
+            })
+            .filter((f: FlightResult | null) => f !== null);
+
+        console.log('✈️ Parsed Flight Results:', flights);
+        return flights;
+    }
+
     if (PROVIDER === 'aviationstack') {
         if (!apiKey) throw new Error('API 키가 필요합니다.');
         // Aviationstack Flights API
