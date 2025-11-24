@@ -1,8 +1,8 @@
 import { sleep } from '../utils/utils.js';
 import type { FlightSearchParams, FlightResult, Provider } from '../types';
 
-// 제공자 선택: 'flightapi' | 'aviationstack' | 'airlabs' | 'custom' | 'demo'
-export let PROVIDER: Provider = 'flightapi';
+// 제공자 선택: 'airlabs' | 'aviationstack' | 'custom' | 'demo'
+export let PROVIDER: Provider = 'airlabs';
 
 export function setProvider(p: Provider): void {
     PROVIDER = p;
@@ -113,198 +113,8 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
         console.log('✈️ DEMO Flight Numbers:', result);
         return result;
     }
-    if (PROVIDER === 'flightapi') {
-        if (!apiKey) throw new Error('API 키가 필요합니다.');
-        if (!origin) throw new Error('출발지 공항 IATA 코드가 필요합니다.');
 
-        // FlightAPI.io Schedule API
-        // Example:
-        //   https://api.flightapi.io/schedule/{API_KEY}?mode=departures&iata=TBS&day=1
-        //
-        // - mode: departures (출발편 기준 조회)
-        // - iata: 공항 IATA 코드 (여기서는 origin)
-        // - day: 오늘을 기준으로 한 날짜 오프셋 (대략적인 매핑)
-        const url = new URL(`https://api.flightapi.io/schedule/${encodeURIComponent(apiKey)}`);
 
-        // 항상 출발편 기준으로 조회
-        const mode = 'departures';
-        url.searchParams.set('mode', mode);
-        url.searchParams.set('iata', origin);
-
-        // date(YYYY-MM-DD)를 오늘 기준 상대 일수로 변환해서 day 파라미터로 사용
-        // FlightAPI.io 요구사항: day 최소값은 1 (오늘).
-        if (date) {
-            const today = new Date();
-            const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const target = new Date(date + 'T00:00:00');
-            const diffDays = Math.round((target.getTime() - todayLocal.getTime()) / 86400000);
-            // 오늘 = 1, 내일 = 2 ... 과 같이 매핑하고,
-            // 과거 날짜는 최소값 1로 클램프한다.
-            const dayParam = Math.max(1, diffDays + 1);
-            url.searchParams.set('day', String(dayParam));
-        }
-
-        console.log('🛫 FlightAPI.io Schedule Request (Page 1):', url.toString());
-        const res = await fetch(url.toString());
-        if (!res.ok) {
-            console.error('❌ FlightAPI.io HTTP Error:', res.status, res.statusText);
-            throw new Error(`HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        console.log('✅ FlightAPI.io Schedule Response (Page 1):', data);
-
-        // 데이터 위치
-        // data.airport.pluginData.schedule.departures.data
-        // data.airport.pluginData.schedule.departures.page
-        const scheduleData = data?.airport?.pluginData?.schedule?.[mode] || {};
-        let scheduleItems = scheduleData.data || [];
-
-        // 페이지네이션 처리
-        const pageInfo = scheduleData.page || {};
-        const totalPages = pageInfo.total || 1;
-
-        if (totalPages > 1) {
-            console.log(`📚 Total pages found: ${totalPages}. Fetching remaining pages...`);
-            const promises = [];
-            for (let p = 2; p <= totalPages; p++) {
-                const nextUrl = new URL(url.toString());
-                nextUrl.searchParams.set('page', String(p));
-                promises.push(
-                    fetch(nextUrl.toString())
-                        .then(r => {
-                            if (!r.ok) throw new Error(`Page ${p} HTTP ${r.status}`);
-                            return r.json();
-                        })
-                        .then(d => {
-                            const items = d?.airport?.pluginData?.schedule?.[mode]?.data || [];
-                            console.log(`✅ Page ${p} fetched: ${items.length} items`);
-                            return items;
-                        })
-                        .catch(e => {
-                            console.error(`❌ Failed to fetch page ${p}:`, e);
-                            return [];
-                        })
-                );
-            }
-
-            const results = await Promise.all(promises);
-            results.forEach(items => {
-                scheduleItems = scheduleItems.concat(items);
-            });
-        }
-
-        console.log('📊 FlightAPI.io schedule items (Total):', Array.isArray(scheduleItems) ? scheduleItems.length : 0);
-
-        // 항공편명 리스트 추출 + 조건 필터링
-        const filteredFlights = scheduleItems
-            .map((item: any) => item?.flight)
-            .filter(Boolean)
-            .filter((f: any) => {
-                // 항공사 필터
-                if (airline) {
-                    const code = f.airline?.code?.iata || f.owner?.code?.iata;
-                    if (!code || code.toUpperCase() !== airline.toUpperCase()) return false;
-                }
-                // 도착 공항 필터
-                if (destination) {
-                    const destCode = f.airport?.destination?.code?.iata;
-                    if (!destCode || destCode.toUpperCase() !== destination.toUpperCase()) return false;
-                }
-                // 날짜 필터 (스케줄 출발 시각 기준, YYYY-MM-DD 매칭)
-                if (date) {
-                    const flightId =
-                        f.identification?.number?.default ||
-                        `${(f.airline?.code?.iata || f.owner?.code?.iata || '??').toUpperCase()}?`;
-                    const ts =
-                        f.time?.scheduled?.departure ??
-                        f.time?.estimated?.departure ??
-                        f.time?.real?.departure ??
-                        null;
-                    if (!ts) {
-                        console.log('⏱️ [FlightAPI.io] 날짜 필터: 출발시각 없음으로 제외', {
-                            flight: flightId,
-                            airline: f.airline?.code?.iata || f.owner?.code?.iata || null,
-                            rawTime: f.time || null,
-                            targetDate: date,
-                        });
-                        return false;
-                    }
-                    const depDateObj = new Date(ts * 1000);
-                    const flightDate = depDateObj.toISOString().slice(0, 10);
-                    if (flightDate !== date) {
-                        console.log('📆 [FlightAPI.io] 날짜 필터: 날짜 불일치로 제외', {
-                            flight: flightId,
-                            airline: f.airline?.code?.iata || f.owner?.code?.iata || null,
-                            scheduledDepartureEpoch: ts,
-                            scheduledDepartureLocal: depDateObj.toString(),
-                            scheduledDepartureISO: depDateObj.toISOString(),
-                            targetDate: date,
-                            flightDate,
-                        });
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-        const enriched = filteredFlights
-            .map((f: any) => {
-                const primary = f.identification?.number?.default;
-                const airlineCode = (f.airline?.code?.iata || f.owner?.code?.iata || '').toUpperCase();
-                if (!primary && !airlineCode) return null;
-
-                const ts =
-                    f.time?.scheduled?.departure ??
-                    f.time?.estimated?.departure ??
-                    f.time?.real?.departure ??
-                    null;
-
-                let departureTimeText = null;
-                let departureTimeLocalISO = null;
-                if (ts) {
-                    // 출발 공항 타임존(offset 초)을 사용해 로컬 출발 시각 계산
-                    const offsetSec = f.airport?.origin?.timezone?.offset;
-                    const offsetMs = typeof offsetSec === 'number' ? offsetSec * 1000 : 0;
-                    const originDate = new Date(ts * 1000 + offsetMs);
-                    const h = String(originDate.getUTCHours()).padStart(2, '0');
-                    const m = String(originDate.getUTCMinutes()).padStart(2, '0');
-                    departureTimeText = `${h}:${m}`;
-                    departureTimeLocalISO = originDate.toISOString();
-                }
-
-                const flightNumber = String(
-                    primary ||
-                    (airlineCode && f.identification?.number?.alternative
-                        ? airlineCode + String(f.identification.number.alternative)
-                        : primary || '')
-                ).toUpperCase();
-
-                if (!flightNumber) return null;
-
-                return {
-                    flightNumber,
-                    airline: airlineCode || null,
-                    origin: origin || null,
-                    destination: (f.airport?.destination?.code?.iata || '').toUpperCase() || null,
-                    departureEpoch: ts,
-                    departureTimeLocalISO,
-                    departureTimeText,
-                };
-            })
-            .filter(Boolean);
-
-        // flightNumber + 출발시각 기준으로 중복 제거
-        const seen = new Set();
-        const uniqueFlights = enriched.filter((item: FlightResult) => {
-            const key = `${item.flightNumber}|${item.departureTimeText || ''}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
-        console.log('✈️ Parsed Flights with time (FlightAPI.io):', uniqueFlights);
-        return uniqueFlights;
-    }
     if (PROVIDER === 'aviationstack') {
         if (!apiKey) throw new Error('API 키가 필요합니다.');
         // Aviationstack Flights API
@@ -347,32 +157,72 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
     }
     if (PROVIDER === 'airlabs') {
         if (!apiKey) throw new Error('API 키가 필요합니다.');
-        // 참고: Airlabs API
-        // endpoint: [https://airlabs.co/api/v9/schedules](https://airlabs.co/api/v9/schedules)
+        // Airlabs API
+        // endpoint: https://airlabs.co/api/v9/schedules
         // params: api_key, dep_iata, arr_iata, airline_iata
-        // Note: Returns schedules from current time + 10 hours (no date parameter needed)
         const url = new URL('https://airlabs.co/api/v9/schedules');
         url.searchParams.set('api_key', apiKey);
         if (origin) url.searchParams.set('dep_iata', origin);
         if (destination) url.searchParams.set('arr_iata', destination);
         if (airline) url.searchParams.set('airline_iata', airline);
+
         console.log('🛫 Airlabs API Request:', url.toString());
         const res = await fetch(url.toString());
+
         if (!res.ok) {
             console.error('❌ API Error:', res.status, res.statusText);
             throw new Error(`HTTP ${res.status}`);
         }
+
         const data = await res.json();
         console.log('✅ Airlabs API Response:', data);
-        // 방어적 파싱 - Airlabs API response structure
-        const flights = (data?.response || [])
-            .map((item: any) => item?.flight_iata || item?.flight_number || null)
-            .filter(Boolean) as string[];
-        console.log('✈️ Parsed Flight Numbers:', flights);
-        // 중복 제거 + 정렬
-        const uniqueFlights = Array.from(new Set(flights)).sort();
+
+        // AirLabs response mapping
+        const flights: FlightResult[] = (data?.response || [])
+            .map((item: any) => {
+                const flightNumber = item.flight_iata || (item.airline_iata && item.flight_number ? `${item.airline_iata}${item.flight_number}` : null);
+                if (!flightNumber) return null;
+
+                // dep_time example: "2025-11-23 23:40"
+                const depTimeStr = item.dep_time || '';
+                let departureTimeText = null;
+                if (depTimeStr && depTimeStr.length >= 16) {
+                    // Extract HH:MM from "YYYY-MM-DD HH:MM"
+                    departureTimeText = depTimeStr.slice(11, 16);
+                }
+
+                return {
+                    flightNumber: flightNumber,
+                    airline: item.airline_iata || null,
+                    origin: item.dep_iata || null,
+                    destination: item.arr_iata || null,
+                    departureEpoch: item.dep_time_ts || null,
+                    departureTimeLocalISO: item.dep_time || null, // Keeping original format "YYYY-MM-DD HH:MM" as it's close enough to ISO for display or can be parsed
+                    departureTimeText: departureTimeText
+                };
+            })
+            .filter((f: FlightResult | null) => f !== null) as FlightResult[];
+
+        console.log('✈️ Parsed Flight Results:', flights);
+
+        // 중복 제거 (flightNumber + departureTimeText 기준)
+        const seen = new Set();
+        const uniqueFlights = flights.filter((item) => {
+            const key = `${item.flightNumber}|${item.departureTimeText || ''}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        // 시간순 정렬 (departureEpoch 기준)
+        uniqueFlights.sort((a, b) => {
+            const t1 = a.departureEpoch || 0;
+            const t2 = b.departureEpoch || 0;
+            return t1 - t2;
+        });
+
         console.log('📋 Final Flight List:', uniqueFlights);
-        return uniqueFlights.map(fn => ({ flightNumber: fn, airline: null, origin: null, destination: null }));
+        return uniqueFlights;
     }
     if (PROVIDER === 'custom') {
         // 사내/다른 API에 맞게 수정

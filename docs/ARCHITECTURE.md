@@ -30,7 +30,7 @@ flight-number-searcher/
 │   │   ├── airports.ts        # 공항 목록 (IATA 코드 + 이름)
 │   │   └── locales.ts         # 다국어 번역 데이터
 │   ├── services/              # 외부 서비스 연동
-│   │   └── api.ts             # FlightAPI.io API 호출 로직
+│   │   └── api.ts             # AirLabs API 호출 로직
 │   ├── stores/                # Zustand 상태 관리
 │   │   ├── useSearchStore.ts  # 검색 관련 상태
 │   │   ├── useSettingsStore.ts # 설정 관련 상태
@@ -72,7 +72,7 @@ React 컴포넌트를 기능별로 분류하여 저장합니다.
 ### `/src/services/`
 외부 API와의 통신을 담당하는 서비스 레이어입니다.
 
-- **`api.ts`**: FlightAPI.io API 호출, 캐싱, 페이지네이션 처리
+- **`api.ts`**: AirLabs API 호출, 캐싱, 페이지네이션 처리
 
 ### `/src/stores/`
 Zustand를 사용한 전역 상태 관리 스토어입니다.
@@ -122,7 +122,7 @@ graph TD
     F --> G{캐시 확인}
     G -->|캐시 있음| H[캐시된 데이터 반환]
     G -->|캐시 없음| I[api.ts: fetchFlights 호출]
-    I --> J[FlightAPI.io API 요청]
+    I --> J[AirLabs API 요청]
     J --> K{페이지네이션 필요?}
     K -->|Yes| L[모든 페이지 병렬 요청]
     K -->|No| M[단일 페이지 결과]
@@ -166,9 +166,9 @@ graph TD
 
 ## 🔌 API 통신 상세
 
-### FlightAPI.io Schedule API
+### AirLabs Schedule API
 
-**엔드포인트**: `https://api.flightapi.io/schedule/{API_KEY}`
+**엔드포인트**: `https://airlabs.co/api/v9/schedules`
 
 **주요 파라미터**:
 - `mode`: `departures` (출발편 기준 조회)
@@ -235,7 +235,7 @@ graph TD
 
 // useSettingsStore
 {
-  apiKey: string,                       // FlightAPI.io API 키
+  apiKey: string,                       // AirLabs API 키
   language: 'ko' | 'en' | 'ja',        // 선택된 언어
   setApiKey: (key: string) => void,
   setLanguage: (lang: string) => void
@@ -330,7 +330,7 @@ npm run build
 API 키 없이 테스트하려면:
 ```typescript
 // src/services/api.ts
-export let PROVIDER: Provider = 'demo'; // 'flightapi' 대신 'demo' 사용
+export let PROVIDER: Provider = 'demo'; // 'airlabs' 대신 'demo' 사용
 ```
 
 ## 📊 성능 최적화
@@ -356,7 +356,7 @@ export let PROVIDER: Provider = 'demo'; // 'flightapi' 대신 'demo' 사용
    - 프로덕션에서는 백엔드 프록시 사용 권장
 
 2. **CORS**: 
-   - FlightAPI.io는 CORS를 지원하므로 클라이언트에서 직접 호출 가능
+   - AirLabs는 CORS를 지원하므로 클라이언트에서 직접 호출 가능
    - 다른 API 사용 시 CORS 정책 확인 필요
 
 3. **XSS 방지**: 
@@ -397,5 +397,5 @@ export let PROVIDER: Provider = 'demo'; // 'flightapi' 대신 'demo' 사용
 - [React 공식 문서](https://react.dev/)
 - [Vite 공식 문서](https://vitejs.dev/)
 - [Zustand 공식 문서](https://zustand-demo.pmnd.rs/)
-- [FlightAPI.io 문서](https://flightapi.io/documentation)
+- [AirLabs 문서](https://airlabs.co/docs)
 - [TypeScript 핸드북](https://www.typescriptlang.org/docs/)

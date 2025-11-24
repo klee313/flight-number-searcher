@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { FlightSearchParams, FlightResult } from '../types';
-import { fetchFlights, setProvider, PROVIDER } from '../services/api';
+import { fetchFlights, setProvider } from '../services/api';
 
 interface SearchState {
     flights: FlightResult[];
@@ -38,14 +38,31 @@ export const useSearchStore = create<SearchState>((set) => ({
         window.history.replaceState(null, '', next.toString());
 
         try {
-            const usingDemo = forceDemo || (!apiKey && PROVIDER !== 'custom');
-            const prevProvider = PROVIDER;
-            if (usingDemo) setProvider('demo');
+            // Import useSettingsStore dynamically to avoid circular dependency issues if any,
+            // or just assume it's available. Since it's a separate store, it should be fine.
+            // However, we need to import it at the top.
+            // Let's assume we imported it.
+            const { useSettingsStore } = await import('./useSettingsStore');
+            const provider = useSettingsStore.getState().provider;
+
+            const usingDemo = forceDemo || (!apiKey && provider !== 'custom');
+
+            // Set provider based on settings or demo mode
+            if (usingDemo) {
+                setProvider('demo');
+            } else {
+                setProvider(provider);
+            }
 
             const results = await fetchFlights({ ...params, apiKey });
             set({ flights: results, error: null });
 
-            if (usingDemo) setProvider(prevProvider);
+            // Restore provider if needed, but actually we set it every time so it might not be needed.
+            // But to be safe and consistent with previous logic:
+            if (usingDemo) {
+                // If we switched to demo, we might want to switch back or just leave it.
+                // The next search will reset it anyway.
+            }
         } catch (err) {
             console.error('Search failed:', err);
             const message = err instanceof Error ? err.message : 'An error occurred';

@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { setLanguage as setLocaleLang } from '../data/locales';
+import type { Provider } from '../types';
 
 interface SettingsState {
     apiKey: string;
+    provider: Provider;
     setApiKey: (key: string) => void;
+    setProvider: (provider: Provider) => void;
 }
 
 // Detect browser language
@@ -21,12 +24,15 @@ export const useSettingsStore = create<SettingsState>()(
     persist(
         (set) => ({
             apiKey: '',
+            provider: 'airlabs',
             setApiKey: (key) => set({ apiKey: key }),
+            setProvider: (provider) => set({ provider }),
         }),
         {
             name: 'flight-settings',
             partialize: (state) => ({
                 apiKey: state.apiKey,
+                provider: state.provider,
             }),
         }
     )

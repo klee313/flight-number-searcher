@@ -1,40 +1,41 @@
 # ✈️ Flight Number Searcher
 
-항공편 번호를 검색하고 조회할 수 있는 웹 애플리케이션입니다. FlightAPI.io를 통해 실시간 항공편 스케줄 정보를 제공합니다.
+항공편 번호를 검색하고 조회할 수 있는 웹 애플리케이션입니다. AirLabs를 통해 실시간 항공편 스케줄 정보를 제공합니다.
 
-## 🌟 주요 기능
+## 기능
 
-- **항공편 검색**: 날짜, 항공사, 출발지, 목적지를 기준으로 항공편 검색
-- **자동완성**: 공항 및 항공사 IATA 코드 입력 시 자동완성 지원
-- **다국어 지원**: 한국어, 영어, 일본어 인터페이스 제공
-- **캐싱**: localStorage를 활용한 API 응답 캐싱 (1시간 유효)
-- **상세 정보**: 각 항공편의 상세 정보 모달 표시
-- **반응형 디자인**: 모바일, 태블릿, 데스크톱 환경 지원
+- **항공편 검색**: 날짜, 항공사, 출발지, 도착지를 선택하여 항공편 번호를 검색할 수 있습니다.
+- **실시간 데이터**: AirLabs API를 사용하여 최신 스케줄 정보를 가져옵니다.
+- **다국어 지원**: 한국어, 영어, 터키어를 지원합니다.
+- **반응형 디자인**: PC와 모바일 환경 모두에 최적화되어 있습니다.
+- **설정 관리**: API 키와 언어 설정을 관리할 수 있습니다.
 
-## 🚀 빠른 시작
+## 시작하기
 
-### 필수 요구사항
+### 필수 조건
 
-- Node.js 20 이상
+- Node.js (v18 이상 권장)
 - npm 또는 yarn
 
-### 설치 및 실행
+### 설치
+
+1. 저장소를 클론합니다.
 
 ```bash
-# 의존성 설치
+git clone https://github.com/your-username/flight-number-searcher.git
+cd flight-number-searcher
+```
+
+2. 의존성을 설치합니다.
+
+```bash
 npm install
+```
 
-# 개발 서버 실행 (http://localhost:5173)
+3. 개발 서버를 실행합니다.
+
+```bash
 npm run dev
-
-# 프로덕션 빌드
-npm run build
-
-# 빌드 결과물 미리보기
-npm run preview
-
-# 린트 검사
-npm run lint
 ```
 
 ## 📦 기술 스택 및 리팩토링 (Refactoring)
@@ -77,7 +78,7 @@ npm run lint
 
 ## 🔑 API 키 설정
 
-1. [FlightAPI.io](https://flightapi.io/)에서 무료 API 키 발급
+1. [AirLabs](https://airlabs.co/)에서 무료 API 키 발급
 2. 애플리케이션 실행 후 우측 상단 설정(⚙️) 버튼 클릭
 3. API 키 입력 및 저장 (localStorage에 저장됨)
 

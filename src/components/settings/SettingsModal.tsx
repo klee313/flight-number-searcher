@@ -29,6 +29,17 @@ export default function SettingsModal() {
     return (
         <Modal isOpen={isSettingsOpen} onClose={closeSettings} title={t('settingsTitle')}>
             <div className="setting-group">
+                <label htmlFor="providerSelect">{t('providerLabel')}</label>
+                <select
+                    id="providerSelect"
+                    value={useSettingsStore(state => state.provider)}
+                    onChange={(e) => useSettingsStore.getState().setProvider(e.target.value as any)}
+                    style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
+                >
+                    <option value="airlabs">{t('providerAirlabs')}</option>
+                    <option value="aviationstack">{t('providerAviationstack')}</option>
+                </select>
+
                 <label htmlFor="apiKey">{t('apiKeyLabel')}</label>
                 {!apiKey ? (
                     <div id="apiKeyInputArea">
