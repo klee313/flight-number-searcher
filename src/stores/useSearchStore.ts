@@ -11,6 +11,7 @@ interface SearchState {
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     setCriteria: (criteria: FlightSearchParams | null) => void;
+    reset: () => void;
     searchFlights: (params: FlightSearchParams, apiKey: string, forceDemo?: boolean) => Promise<void>;
 }
 
@@ -24,6 +25,8 @@ export const useSearchStore = create<SearchState>((set) => ({
     setError: (error) => set({ error }),
     setCriteria: (criteria) => set({ criteria }),
 
+    reset: () => set({ flights: [], criteria: null, error: null, loading: false }),
+
     searchFlights: async (params: FlightSearchParams, apiKey: string, forceDemo = false) => {
         const { date, airline, origin, destination } = params;
 
@@ -35,7 +38,7 @@ export const useSearchStore = create<SearchState>((set) => ({
         next.searchParams.set('airline', airline);
         next.searchParams.set('origin', origin);
         next.searchParams.set('destination', destination);
-        window.history.replaceState(null, '', next.toString());
+        window.history.pushState(null, '', next.toString());
 
         try {
             // Import useSettingsStore dynamically to avoid circular dependency issues if any,
