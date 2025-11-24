@@ -110,6 +110,13 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
             departureTimeText: item.time
         }));
 
+        // Sort by time
+        result.sort((a, b) => {
+            if (!a.departureTimeText) return 1;
+            if (!b.departureTimeText) return -1;
+            return a.departureTimeText.localeCompare(b.departureTimeText);
+        });
+
         console.log('✈️ DEMO Flight Numbers:', result);
         return result;
     }
@@ -172,6 +179,13 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
                 };
             })
             .filter((f: FlightResult | null) => f !== null);
+
+        // Sort by time
+        flights.sort((a, b) => {
+            if (!a.departureTimeText) return 1;
+            if (!b.departureTimeText) return -1;
+            return a.departureTimeText.localeCompare(b.departureTimeText);
+        });
 
         console.log('✈️ Parsed Flight Results:', flights);
         return flights;

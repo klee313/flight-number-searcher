@@ -1,5 +1,5 @@
 import { Outlet, Link } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { Settings, Plane } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
@@ -11,7 +11,7 @@ export default function Layout() {
             <header className="border-b">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                     <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-                        <span className="h-3 w-3 rounded-full bg-primary"></span>
+                        <Plane className="h-5 w-5 text-primary" />
                         {t('title')}
                     </Link>
                     <Button variant="ghost" size="icon" asChild>
