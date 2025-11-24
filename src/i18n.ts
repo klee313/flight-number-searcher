@@ -49,6 +49,10 @@ const resources = {
             langEn: 'English',
             langKo: 'Korean',
             langTr: 'Turkish',
+            providerLabel: 'API Provider',
+            providerAirlabs: 'AirLabs (Real-time)',
+            providerFlightApi: 'FlightAPI.io',
+            providerAviationstack: 'Aviationstack',
         },
     },
     ko: {
@@ -97,6 +101,10 @@ const resources = {
             langEn: '영어',
             langKo: '한국어',
             langTr: '튀르키예어',
+            providerLabel: 'API 제공자',
+            providerAirlabs: 'AirLabs (실시간)',
+            providerFlightApi: 'FlightAPI.io',
+            providerAviationstack: 'Aviationstack',
         },
     },
     tr: {
@@ -145,6 +153,10 @@ const resources = {
             langEn: 'İngilizce',
             langKo: 'Korece',
             langTr: 'Türkçe',
+            providerLabel: 'API Sağlayıcı',
+            providerAirlabs: 'AirLabs (Gerçek zamanlı)',
+            providerFlightApi: 'FlightAPI.io',
+            providerAviationstack: 'Aviationstack',
         },
     },
 };
