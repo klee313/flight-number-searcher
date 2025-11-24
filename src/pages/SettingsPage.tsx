@@ -69,6 +69,24 @@ export default function SettingsPage() {
                         </Select>
                     </div>
 
+                    {/* Provider Settings */}
+                    <div className="space-y-2">
+                        <Label htmlFor="provider">{t('providerLabel')}</Label>
+                        <Select
+                            onValueChange={(val) => useSettingsStore.getState().setProvider(val as any)}
+                            value={useSettingsStore(state => state.provider)}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder={t('providerLabel')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="airlabs">{t('providerAirlabs')}</SelectItem>
+                                <SelectItem value="flightapi">{t('providerFlightApi')}</SelectItem>
+                                <SelectItem value="aviationstack">{t('providerAviationstack')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* API Key Settings */}
                     <div className="space-y-2">
                         <Label htmlFor="apiKey">{t('apiKeyLabel')}</Label>
