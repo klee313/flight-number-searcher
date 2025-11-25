@@ -1,5 +1,6 @@
 import { sleep } from '../utils/utils.js';
 import type { FlightSearchParams, FlightResult, Provider } from '../types';
+import i18n from '../i18n';
 
 // 제공자 선택: 'airlabs' | 'aviationstack' | 'custom' | 'demo'
 export let PROVIDER: Provider = 'airlabs';
@@ -123,15 +124,27 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
 
 
     if (PROVIDER === 'flightapi') {
-        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        if (!apiKey) throw new Error(i18n.t('errApiKeyRequired'));
         // FlightAPI.io Schedule API
         // endpoint: https://api.flightapi.io/schedule/{API_KEY}
         // params: mode=departures, day=YYYY-MM-DD, iata=ORIGIN_IATA
 
         const url = new URL(`https://api.flightapi.io/schedule/${apiKey}`);
-        url.searchParams.set('mode', 'departures');
+
+        // Determine mode based on available parameters
+        // If we have origin, we look for departures from there.
+        // If we only have destination, we look for arrivals there.
+        if (origin) {
+            url.searchParams.set('mode', 'departures');
+            url.searchParams.set('iata', origin);
+        } else if (destination) {
+            url.searchParams.set('mode', 'arrivals');
+            url.searchParams.set('iata', destination);
+        } else {
+            throw new Error(i18n.t('errOriginOrDestRequired'));
+        }
+
         if (date) url.searchParams.set('day', date);
-        if (origin) url.searchParams.set('iata', origin);
 
         console.log('🛫 FlightAPI Request:', url.toString());
         const res = await fetch(url.toString());
@@ -152,9 +165,13 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
         // It usually returns a list of flights.
 
         // Let's try to map safely.
-        const departures = data?.[0]?.airport?.pluginData?.schedule?.departures?.data || [];
+        // FlightAPI response structure can vary based on mode
+        // Departures: airport.pluginData.schedule.departures.data
+        // Arrivals: airport.pluginData.schedule.arrivals.data
+        const schedule = data?.[0]?.airport?.pluginData?.schedule;
+        const list = (origin ? schedule?.departures?.data : schedule?.arrivals?.data) || [];
 
-        const flights: FlightResult[] = departures
+        const flights: FlightResult[] = list
             .map((item: any) => {
                 // Filter by airline if specified
                 const airlineCode = item.flight?.airline?.iata;
@@ -192,7 +209,7 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
     }
 
     if (PROVIDER === 'aviationstack') {
-        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        if (!apiKey) throw new Error(i18n.t('errApiKeyRequired'));
         // Aviationstack Flights API
         // endpoint: http://api.aviationstack.com/v1/flights
         // params: access_key, dep_iata, arr_iata, airline_iata, flight_date (YYYY-MM-DD), flight_status
@@ -232,7 +249,7 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
         return uniqueFlights.map(fn => ({ flightNumber: fn, airline: null, origin: null, destination: null }));
     }
     if (PROVIDER === 'airlabs') {
-        if (!apiKey) throw new Error('API 키가 필요합니다.');
+        if (!apiKey) throw new Error(i18n.t('errApiKeyRequired'));
         // Airlabs API
         // endpoint: https://airlabs.co/api/v9/schedules
         // params: api_key, dep_iata, arr_iata, airline_iata

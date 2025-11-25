@@ -23,7 +23,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { FlightCombobox } from './FlightCombobox';
-import { searchSchema, type SearchSchema } from '@/schemas/searchSchema';
+import { createSearchSchema, type SearchSchema } from '@/schemas/searchSchema';
 import { useSearchStore } from '@/stores/useSearchStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { qs } from '@/utils/utils';
@@ -32,6 +32,8 @@ export default function SearchForm() {
     const { t, i18n } = useTranslation();
     const { apiKey } = useSettingsStore();
     const { searchFlights } = useSearchStore();
+
+    const searchSchema = createSearchSchema(t);
 
     const form = useForm<SearchSchema>({
         resolver: zodResolver(searchSchema),
@@ -185,7 +187,7 @@ export default function SearchForm() {
                                             type="airport"
                                             value={field.value}
                                             onChange={field.onChange}
-                                            placeholder="ICN"
+                                            placeholder={t('originPlaceholder')}
                                         />
                                     </FormControl>
                                     <FormMessage className="absolute bottom-0 left-0 text-xs" />
@@ -219,7 +221,7 @@ export default function SearchForm() {
                                             type="airport"
                                             value={field.value}
                                             onChange={field.onChange}
-                                            placeholder="NRT"
+                                            placeholder={t('destinationPlaceholder')}
                                         />
                                     </FormControl>
                                     <FormMessage className="absolute bottom-0 left-0 text-xs" />

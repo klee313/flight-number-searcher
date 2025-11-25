@@ -1,10 +1,13 @@
 import { z } from 'zod';
 
-export const searchSchema = z.object({
-    date: z.string().min(1, { message: "Date is required" }),
-    airline: z.string().min(1, { message: "Airline is required" }),
-    origin: z.string().min(1, { message: "Origin is required" }),
-    destination: z.string().min(1, { message: "Destination is required" }),
+export const createSearchSchema = (t: (key: string) => string) => z.object({
+    date: z.string().min(1, { message: t('errDateRequired') }),
+    airline: z.string().min(1, { message: t('errAirlineRequired') }),
+    origin: z.string().optional(),
+    destination: z.string().optional(),
+}).refine(data => data.origin || data.destination, {
+    message: t('errOriginOrDestRequired'),
+    path: ["origin"],
 });
 
-export type SearchSchema = z.infer<typeof searchSchema>;
+export type SearchSchema = z.infer<ReturnType<typeof createSearchSchema>>;
