@@ -30,6 +30,7 @@ interface FlightComboboxProps {
 
 export function FlightCombobox({ value, onChange, type, placeholder, className }: FlightComboboxProps) {
     const [open, setOpen] = React.useState(false)
+    const [search, setSearch] = React.useState("")
     const { recentAirlines, recentAirports } = useRecentSearchStore()
 
     // Filter data based on type
@@ -53,15 +54,22 @@ export function FlightCombobox({ value, onChange, type, placeholder, className }
 
     const { recentItems, otherItems } = React.useMemo(() => {
         const recent = recentCodes
-            .map(code => allData.find(item => item.value === code))
-            .filter((item): item is typeof allData[0] => !!item);
+            .map(code => {
+                const found = allData.find(item => item.value === code);
+                // If not found in predefined list, create a custom item
+                return found || {
+                    value: code,
+                    label: `${code} (Custom)`,
+                    search: code
+                };
+            });
 
         const other = allData.filter(item => !recentCodes.includes(item.value));
 
         return { recentItems: recent, otherItems: other };
     }, [allData, recentCodes]);
 
-    const selectedItem = allData.find((item) => item.value === value)
+    const selectedItem = allData.find((item) => item.value === value) || (value ? { label: value, value } : null)
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -77,19 +85,87 @@ export function FlightCombobox({ value, onChange, type, placeholder, className }
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[300px] p-0">
-                <Command>
-                    <CommandInput placeholder={`Search ${type}...`} />
+                <Command shouldFilter={false}>
+                    <CommandInput
+                        placeholder={`Search ${type}...`}
+                        value={search}
+                        onValueChange={setSearch}
+                    />
                     <CommandList>
-                        <CommandEmpty>No results found.</CommandEmpty>
+                        <CommandEmpty>
+                            {search && (
+                                <div
+                                    className="px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground rounded-sm"
+                                    onClick={() => {
+                                        onChange(search.toUpperCase())
+                                        setOpen(false)
+                                        setSearch("")
+                                    }}
+                                >
+                                    Use "{search.toUpperCase()}"
+                                </div>
+                            )}
+                            {!search && "No results found."}
+                        </CommandEmpty>
+
+                        {/* Custom Option when searching */}
+                        {search && !allData.some(item => item.value === search.toUpperCase()) && (
+                            <CommandGroup heading="Custom">
+                                <CommandItem
+                                    value={search.toUpperCase()}
+                                    onSelect={() => {
+                                        onChange(search.toUpperCase())
+                                        setOpen(false)
+                                        setSearch("")
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            value === search.toUpperCase() ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    Use "{search.toUpperCase()}"
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
+
                         {recentItems.length > 0 && (
                             <CommandGroup heading="Recent">
-                                {recentItems.map((item) => (
+                                {recentItems
+                                    .filter(item => !search || item.search.toLowerCase().includes(search.toLowerCase()))
+                                    .map((item) => (
+                                        <CommandItem
+                                            key={item.value}
+                                            value={item.search}
+                                            onSelect={() => {
+                                                onChange(item.value === value ? "" : item.value)
+                                                setOpen(false)
+                                                setSearch("")
+                                            }}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    value === item.value ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            {item.label}
+                                        </CommandItem>
+                                    ))}
+                            </CommandGroup>
+                        )}
+                        <CommandGroup heading="All">
+                            {otherItems
+                                .filter(item => !search || item.search.toLowerCase().includes(search.toLowerCase()))
+                                .map((item) => (
                                     <CommandItem
                                         key={item.value}
                                         value={item.search}
                                         onSelect={() => {
                                             onChange(item.value === value ? "" : item.value)
                                             setOpen(false)
+                                            setSearch("")
                                         }}
                                     >
                                         <Check
@@ -101,27 +177,6 @@ export function FlightCombobox({ value, onChange, type, placeholder, className }
                                         {item.label}
                                     </CommandItem>
                                 ))}
-                            </CommandGroup>
-                        )}
-                        <CommandGroup heading="All">
-                            {otherItems.map((item) => (
-                                <CommandItem
-                                    key={item.value}
-                                    value={item.search}
-                                    onSelect={() => {
-                                        onChange(item.value === value ? "" : item.value)
-                                        setOpen(false)
-                                    }}
-                                >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            value === item.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {item.label}
-                                </CommandItem>
-                            ))}
                         </CommandGroup>
                     </CommandList>
                 </Command>
