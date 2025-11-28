@@ -9,6 +9,33 @@ export function setProvider(p: Provider): void {
     PROVIDER = p;
 }
 
+function checkAndIncrementApiUsage() {
+    const STORAGE_KEY = 'flight_api_usage';
+    const MAX_DAILY_CALLS = 10;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    let usage = { date: today, count: 0 };
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.date === today) {
+                usage = parsed;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse api usage:', e);
+    }
+
+    if (usage.count >= MAX_DAILY_CALLS) {
+        throw new Error(`Daily search limit exceeded (${MAX_DAILY_CALLS}/${MAX_DAILY_CALLS}). Please try again tomorrow.`);
+    }
+
+    usage.count++;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
+    console.log(`📊 API Usage: ${usage.count}/${MAX_DAILY_CALLS}`);
+}
+
 /**
  * 표준화된 입력으로 항공편명 배열 반환
  * @param {{date:string, airline:string, origin:string, destination:string, apiKey?:string}} p
@@ -121,6 +148,9 @@ export async function fetchFlightsFromProvider(p: FlightSearchParams): Promise<F
         console.log('✈️ DEMO Flight Numbers:', result);
         return result;
     }
+
+    // Rate Limiting Check (Skip for demo)
+    checkAndIncrementApiUsage();
 
 
     if (PROVIDER === 'flightapi') {

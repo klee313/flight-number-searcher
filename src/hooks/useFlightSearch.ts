@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchFlightsFromProvider } from '../services/api';
+import { fetchFlights } from '../services/api';
 import type { FlightSearchParams, FlightResult } from '../types';
 
 export function useFlightSearch(params: Partial<FlightSearchParams>) {
@@ -13,7 +13,7 @@ export function useFlightSearch(params: Partial<FlightSearchParams>) {
 
     return useQuery<FlightResult[], Error>({
         queryKey: ['flights', params],
-        queryFn: () => fetchFlightsFromProvider(params as FlightSearchParams),
+        queryFn: () => fetchFlights(params as FlightSearchParams),
         enabled: isEnabled,
         staleTime: 1000 * 60 * 60, // 1 hour
         retry: 1,
